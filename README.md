@@ -1,3 +1,4 @@
 # cvm46
 
-C Virtual Machine
+64-bit Virtual Machine
+
