@@ -2,8 +2,7 @@ type Word = i64;
 const STACK_CAP: usize = 1024;
 
 #[derive(Debug)]
-enum Error {
-    StackOverflow,
+enum Error { StackOverflow,
     StackUnderflow,
     SegmentationFault,
     IllegalInst,
@@ -38,7 +37,10 @@ struct Machine {
     stack: [Word; STACK_CAP],
     sp: usize,
     ip: usize,
-    program: Vec<Inst>
+    program: Vec<Inst>,
+
+    // Makes it dump the stack on instruction execs
+    debug: bool
 }
 
 impl Machine {
@@ -47,16 +49,18 @@ impl Machine {
             stack: [0; STACK_CAP],
             sp: 0,
             ip: 0,
-            program
+            program,
+
+            debug: false
         }
     }
 
     /// Increments the ip and executes next instruction
     fn exec(&mut self) -> Result<(), Error> {
-        while self.ip < self.program.len() {
-            let inst = self.program[self.ip].clone();
+        while self.ip < self.program.len() { let inst = self.program[self.ip].clone();
             self.ip += 1;
             self.exec_inst(&inst)?;
+            if self.debug { self.dump(); }
         }
         Ok(())
     }
@@ -121,8 +125,14 @@ impl Machine {
 
     fn dump(&self) {
         println!("Stack:");
-        for i in 0..self.sp {
-            println!("  {} - {}", self.stack[i], i);
+
+        if self.sp < 1 {
+            println!("  [empty]");
+        }
+        else {
+            for i in 0..self.sp {
+                println!("  {} - {}", self.stack[i], i);
+            }
         }
     }
 }
@@ -137,11 +147,13 @@ fn main() -> Result<(), Error> {
         Inst::new(InstType::Mul, 0),
         Inst::new(InstType::Push, 2),
         Inst::new(InstType::Div, 0),
+        Inst::new(InstType::Pop, 0),
+        Inst::new(InstType::Jmp, 0),
     ];
 
     let mut machine = Machine::new(program);
+    machine.debug = true;
     let _ = machine.exec()?;
-    let _ = machine.dump();
 
     Ok(())
 }
