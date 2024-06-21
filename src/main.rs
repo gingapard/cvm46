@@ -14,6 +14,7 @@ enum Error {
 #[derive(Debug, Clone)]
 enum InstType {
     Push,
+    Pop,
     Plus,
     Sub,
     Mul,
@@ -68,6 +69,12 @@ impl Machine {
                 }
                 self.stack[self.sp] = inst.operand;
                 self.sp += 1;
+            }
+            InstType::Pop => {
+                if self.sp < 1 {
+                    return Err(Error::StackUnderflow);
+                }
+                self.sp -= 1;
             }
             InstType::Plus => {
                 if self.sp < 2 {
