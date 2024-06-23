@@ -6,7 +6,7 @@
 
 | Opcode | Description             |
 |--------|-------------------------|
-| Pushi  | Push Interger on Stack  |
+| Pushi  | Push Integer on Stack   |
 | Pushf  | Push Float on Stack     |
 | Pushd  | Push Double on Stack    |
 | Pushs  | Push String on Stack    |
@@ -20,3 +20,5 @@
 | Store  | Store on Heap           |
 | Load   | Load from Heap          |
 | Halt   | Halt Execution          |
+
+**More coming**
