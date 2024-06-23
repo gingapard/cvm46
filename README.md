@@ -15,7 +15,7 @@
 | Sub    | sub stack[sp - (1 - 2)] |
 | Mul    | Mul stack[sp - (1 - 2)] |
 | Div    | Div stack[sp - (1 - 2)] | 
-| Jmp    | Change Inst Pinter      |
+| Jmp    | Change Inst Pointer     |
 | Cmp    | Compare value           |
 | Store  | Store on Heap           |
 | Load   | Load from Heap          |
