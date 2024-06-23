@@ -1,14 +1,9 @@
+pub mod error;
+use error::Error;
+
 type Word = i64;
 const STACK_CAP: usize = 1024;
-
-#[derive(Debug)]
-enum Error { StackOverflow,
-    StackUnderflow,
-    SegmentationFault,
-    IllegalInst,
-    DivByZero,
-    IllegalJmp,
-}
+const MEMORY_CAP: usize = 1024;
 
 #[derive(Debug, Clone)]
 enum InstType {
@@ -19,6 +14,10 @@ enum InstType {
     Mul,
     Div,
     Jmp,
+    Cmp,
+    Store,
+    Load,
+    Halt,
 }
 
 #[derive(Debug, Clone)]
@@ -36,8 +35,11 @@ impl Inst {
 struct Machine {
     stack: [Word; STACK_CAP],
     sp: usize,
+    memory: [Word; MEMORY_CAP],
+
     ip: usize,
     program: Vec<Inst>,
+    halt: bool,
 
     // Makes it dump the stack on instruction execs
     debug: bool
@@ -48,8 +50,11 @@ impl Machine {
         Machine {
             stack: [0; STACK_CAP],
             sp: 0,
+            memory: [0; MEMORY_CAP],
+
             ip: 0,
             program,
+            halt: false,
 
             debug: false
         }
@@ -57,10 +62,13 @@ impl Machine {
 
     /// Increments the ip and executes next instruction
     fn exec(&mut self) -> Result<(), Error> {
-        while self.ip < self.program.len() { let inst = self.program[self.ip].clone();
+        while self.ip < self.program.len() && self.halt == false { 
+            let inst = self.program[self.ip].clone();
             self.ip += 1;
             self.exec_inst(&inst)?;
-            if self.debug { self.dump(); }
+            if self.debug { 
+                self.dump();
+            }
         }
         Ok(())
     }
@@ -119,7 +127,47 @@ impl Machine {
                 
                 self.ip = inst.operand as usize;
             }
+            InstType::Cmp => {
+                if self.sp < 2 {
+                    return Err(Error::StackUnderflow);
+                }
+                
+                let result = if self.stack[self.sp - 2] == self.stack[self.sp - 1] { 1 } else { 0 };
+
+                if self.sp < STACK_CAP {
+                    self.stack[self.sp] = result;
+                }
+                else {
+                    return Err(Error::StackOverflow);
+                }
+            }
+            InstType::Store => {
+                if inst.operand as usize >= MEMORY_CAP || inst.operand < 0 {
+                    return Err(Error::SegmentationFault);
+                }
+                if self.sp < 1 {
+                    return Err(Error::StackUnderflow);
+                }
+
+                self.sp -= 1;
+                self.memory[inst.operand as usize] = self.stack[self.sp];
+            }
+            InstType::Load => {
+                if inst.operand as usize >= MEMORY_CAP || inst.operand < 0 {
+                    return Err(Error::SegmentationFault);
+                }
+                if self.sp < 1 {
+                    return Err(Error::StackUnderflow);
+                }
+                
+                self.stack[self.sp] = self.memory[inst.operand as usize];
+                self.sp += 1;
+            }
+            InstType::Halt => {
+                self.halt = true;
+            }
         }
+
         Ok(())
     }
 
@@ -148,7 +196,6 @@ fn main() -> Result<(), Error> {
         Inst::new(InstType::Push, 2),
         Inst::new(InstType::Div, 0),
         Inst::new(InstType::Pop, 0),
-        Inst::new(InstType::Jmp, 0),
     ];
 
     let mut machine = Machine::new(program);
@@ -157,4 +204,3 @@ fn main() -> Result<(), Error> {
 
     Ok(())
 }
-
