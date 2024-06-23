@@ -1,13 +1,23 @@
 pub mod error;
 use error::Error;
 
-type Word = i64;
 const STACK_CAP: usize = 1024;
 const MEMORY_CAP: usize = 1024;
 
+#[derive(Debug, Clone, Copy)]
+enum Word {
+    Int(i64),
+    Float(f32),
+    Double(f64),
+    Str(usize),
+}
+
 #[derive(Debug, Clone)]
 enum InstType {
-    Push,
+    Pushi,
+    Pushf,
+    Pushd,
+    Pushs,
     Pop,
     Plus,
     Sub,
@@ -36,37 +46,36 @@ struct Machine {
     stack: [Word; STACK_CAP],
     sp: usize,
     memory: [Word; MEMORY_CAP],
+    string_memory: Vec<String>,
 
     ip: usize,
     program: Vec<Inst>,
     halt: bool,
-
-    // Makes it dump the stack on instruction execs
-    debug: bool
+    debug: bool,
 }
 
 impl Machine {
     fn new(program: Vec<Inst>) -> Self {
         Machine {
-            stack: [0; STACK_CAP],
+            stack: [Word::Int(0); STACK_CAP],
             sp: 0,
-            memory: [0; MEMORY_CAP],
-
+            memory: [Word::Int(0); MEMORY_CAP],
+            string_memory: Vec::new(),
+            
             ip: 0,
             program,
             halt: false,
-
-            debug: false
+            debug: false,
         }
     }
 
-    /// Increments the ip and executes next instruction
+    /// Execute whole program
     fn exec(&mut self) -> Result<(), Error> {
-        while self.ip < self.program.len() && self.halt == false { 
+        while self.ip < self.program.len() && !self.halt {
             let inst = self.program[self.ip].clone();
             self.ip += 1;
             self.exec_inst(&inst)?;
-            if self.debug { 
+            if self.debug {
                 self.dump();
             }
         }
@@ -75,93 +84,156 @@ impl Machine {
 
     fn exec_inst(&mut self, inst: &Inst) -> Result<(), Error> {
         match inst.inst_type {
-            InstType::Push => {
-                if self.sp >= STACK_CAP {
-                    return Err(Error::StackOverflow);
+            InstType::Pushi => {
+                if let Word::Int(val) = inst.operand {
+                    self.push(Word::Int(val))?;
+                } else {
+                    return Err(Error::IllegalInst);
                 }
-                self.stack[self.sp] = inst.operand;
-                self.sp += 1;
+            }
+            InstType::Pushf => {
+                if let Word::Float(val) = inst.operand {
+                    self.push(Word::Float(val))?;
+                } else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Pushd => {
+                if let Word::Double(val) = inst.operand {
+                    self.push(Word::Double(val))?;
+                } else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Pushs => {
+                if let Word::Str(index) = inst.operand {
+                    if index < self.string_memory.len() {
+                        self.push(Word::Str(index))?;
+                    } else {
+                        return Err(Error::IllegalInst);
+                    }
+                } else {
+                    return Err(Error::IllegalInst);
+                }
             }
             InstType::Pop => {
-                if self.sp < 1 {
-                    return Err(Error::StackUnderflow);
-                }
-                self.sp -= 1;
+                self.pop()?;
             }
             InstType::Plus => {
                 if self.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
-                self.stack[self.sp - 2] += self.stack[self.sp - 1];
-                self.sp -= 1;
+
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int(a + b)),
+                    (Word::Float(a), Word::Float(b)) => Ok(Word::Float(a + b)),
+                    (Word::Double(a), Word::Double(b)) => Ok(Word::Double(a + b)),
+                    _ => Err(Error::IllegalInst),
+                })?;
             }
             InstType::Sub => {
                 if self.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
-                self.stack[self.sp - 2] -= self.stack[self.sp - 1];
-                self.sp -= 1;
+
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int(a - b)),
+                    (Word::Float(a), Word::Float(b)) => Ok(Word::Float(a - b)),
+                    (Word::Double(a), Word::Double(b)) => Ok(Word::Double(a - b)),
+                    _ => Err(Error::IllegalInst),
+                })?;
             }
             InstType::Mul => {
                 if self.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
-                self.stack[self.sp - 2] *= self.stack[self.sp - 1];
-                self.sp -= 1;
+
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int(a * b)),
+                    (Word::Float(a), Word::Float(b)) => Ok(Word::Float(a * b)),
+                    (Word::Double(a), Word::Double(b)) => Ok(Word::Double(a * b)),
+                    _ => Err(Error::IllegalInst),
+                })?;
             }
             InstType::Div => {
                 if self.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
-                else if self.stack[self.sp - 2] == 0 || self.stack[self.sp - 1] == 0 {
-                    return Err(Error::DivByZero);
-                }
 
-                self.stack[self.sp - 2] /= self.stack[self.sp - 1];
-                self.sp -= 1;
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => {
+                        if b == 0 {
+                            Err(Error::DivByZero)
+                        } else {
+                            Ok(Word::Int(a / b))
+                        }
+                    }
+                    (Word::Float(a), Word::Float(b)) => {
+                        if b == 0.0 {
+                            Err(Error::DivByZero)
+                        } else {
+                            Ok(Word::Float(a / b))
+                        }
+                    }
+                    (Word::Double(a), Word::Double(b)) => {
+                        if b == 0.0 {
+                            Err(Error::DivByZero)
+                        } else {
+                            Ok(Word::Double(a / b))
+                        }
+                    }
+                    _ => Err(Error::IllegalInst),
+                })?;
             }
             InstType::Jmp => {
-                if inst.operand as usize > self.program.len() || inst.operand < 0 {
-                    return Err(Error::IllegalJmp);
+                if let Word::Int(addr) = inst.operand {
+                    if addr < 0 || addr as usize >= self.program.len() {
+                        return Err(Error::IllegalJmp);
+                    }
+
+                    self.ip = addr as usize;
+                } else {
+                    return Err(Error::IllegalInst);
                 }
-                
-                self.ip = inst.operand as usize;
             }
             InstType::Cmp => {
                 if self.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
-                
-                let result = if self.stack[self.sp - 2] == self.stack[self.sp - 1] { 1 } else { 0 };
-
-                if self.sp < STACK_CAP {
-                    self.stack[self.sp] = result;
-                }
-                else {
-                    return Err(Error::StackOverflow);
-                }
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int((a == b) as i64)),
+                    (Word::Float(a), Word::Float(b)) => Ok(Word::Int((a == b) as i64)),
+                    (Word::Double(a), Word::Double(b)) => Ok(Word::Int((a == b) as i64)),
+                    (Word::Str(_), Word::Str(_)) => Err(Error::IllegalInst), 
+                    _ => Err(Error::IllegalInst),
+                })?;
             }
             InstType::Store => {
-                if inst.operand as usize >= MEMORY_CAP || inst.operand < 0 {
-                    return Err(Error::SegmentationFault);
-                }
-                if self.sp < 1 {
-                    return Err(Error::StackUnderflow);
-                }
+                if let Word::Int(addr) = inst.operand {
+                    if addr < 0 || addr as usize >= MEMORY_CAP {
+                        return Err(Error::SegmentationFault);
+                    }
 
-                self.sp -= 1;
-                self.memory[inst.operand as usize] = self.stack[self.sp];
+                    if self.sp < 1 {
+                        return Err(Error::StackUnderflow);
+                    }
+
+                    let value = self.pop()?;
+                    self.memory[addr as usize] = value;
+                } else {
+                    return Err(Error::IllegalInst);
+                }
             }
             InstType::Load => {
-                if inst.operand as usize >= MEMORY_CAP || inst.operand < 0 {
-                    return Err(Error::SegmentationFault);
+                if let Word::Int(addr) = inst.operand {
+                    if addr < 0 || addr as usize >= MEMORY_CAP {
+                        return Err(Error::SegmentationFault);
+                    }
+                    let value = self.memory[addr as usize];
+                    self.push(value)?;
+                } else {
+                    return Err(Error::IllegalInst);
                 }
-                if self.sp < 1 {
-                    return Err(Error::StackUnderflow);
-                }
-                
-                self.stack[self.sp] = self.memory[inst.operand as usize];
-                self.sp += 1;
             }
             InstType::Halt => {
                 self.halt = true;
@@ -171,36 +243,88 @@ impl Machine {
         Ok(())
     }
 
+    /// Push to Stack
+    fn push(&mut self, value: Word) -> Result<(), Error> {
+        if self.sp >= STACK_CAP {
+            return Err(Error::StackOverflow);
+        }
+        self.stack[self.sp] = value;
+        self.sp += 1;
+        Ok(())
+    }
+
+    /// Pop off stack and return value
+    fn pop(&mut self) -> Result<Word, Error> {
+        if self.sp < 1 {
+            return Err(Error::StackUnderflow);
+        }
+        self.sp -= 1;
+        Ok(self.stack[self.sp])
+    }
+
+    /// Do Binary Operation based on Word-type 
+    /// TODO: add Rc<Word>
+    fn binary_op<F>(&mut self, op: F) -> Result<(), Error>
+        where
+            F: Fn(Word, Word) -> Result<Word, Error>,
+        {
+            let right = self.pop()?;
+            let left = self.pop()?;
+            
+            match (&left, &right) {
+                (Word::Int(_), Word::Int(_)) => op(left.clone(), right.clone()).and_then(|res| self.push(res)),
+                (Word::Float(_), Word::Float(_)) => op(left.clone(), right.clone()).and_then(|res| self.push(res)),
+                (Word::Double(_), Word::Double(_)) => op(left.clone(), right.clone()).and_then(|res| self.push(res)),
+                (Word::Int(a), Word::Float(_)) => {
+                    let a_float = *a as f32; 
+                    let result = op(Word::Float(a_float), right.clone())?;
+                    self.push(result)
+                }
+                (Word::Float(_), Word::Int(b)) => {
+                    let b_float = *b as f32;
+                    let result = op(left.clone(), Word::Float(b_float))?;
+                    self.push(result)
+                }
+                (Word::Float(a), Word::Double(_)) => {
+                    let a_double = *a as f64; 
+                    let result = op(Word::Double(a_double), right.clone())?;
+                    self.push(result)
+                }
+                (Word::Double(_), Word::Float(b)) => {
+                    let b_double = *b as f64;
+                    let result = op(left.clone(), Word::Double(b_double))?;
+                    self.push(result)
+                }
+                _ => Err(Error::IllegalInst), 
+            }
+        }
+
+
     fn dump(&self) {
         println!("Stack:");
-
         if self.sp < 1 {
             println!("  [empty]");
-        }
-        else {
+        } else {
             for i in 0..self.sp {
-                println!("  {} - {}", self.stack[i], i);
+                match self.stack[i] {
+                    Word::Int(val) => println!("  {} - Int({})", i, val),
+                    Word::Float(val) => println!("  {} - Float({})", i, val),
+                    Word::Double(val) => println!("  {} - Double({})", i, val),
+                    Word::Str(index) => println!("  {} - Str({})", i, self.string_memory[index]),
+                }
             }
         }
     }
 }
 
-// TODO: Load Program from file (.cvm)
-
 fn main() -> Result<(), Error> {
-
     let program = vec![
-        Inst::new(InstType::Push, 69),
-        Inst::new(InstType::Push, 2),
-        Inst::new(InstType::Mul, 0),
-        Inst::new(InstType::Push, 2),
-        Inst::new(InstType::Div, 0),
-        Inst::new(InstType::Pop, 0),
+        Inst::new(InstType::Pushi, Word::Int(69)),
+        Inst::new(InstType::Pushf, Word::Float(2.0)),
+        Inst::new(InstType::Mul, Word::Int(0)),
     ];
 
     let mut machine = Machine::new(program);
     machine.debug = true;
-    let _ = machine.exec()?;
-
-    Ok(())
+    machine.exec()
 }
