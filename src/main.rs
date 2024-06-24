@@ -18,6 +18,7 @@ pub enum Word {
 pub struct Machine {
     stack: [Word; STACK_CAP],
     sp: usize,
+    sbp: usize,
     memory: [Word; MEMORY_CAP],
     string_memory: Vec<String>,
 
@@ -32,6 +33,7 @@ impl Machine {
         Machine {
             stack: [Word::Int(0); STACK_CAP],
             sp: 0,
+            sbp: 0,
             memory: [Word::Int(0); MEMORY_CAP],
             string_memory: Vec::new(),
             

@@ -18,6 +18,8 @@ pub enum InstType {
     Store,
     Load,
     Halt,
+    Call,
+    Return,
 }
 
 #[derive(Debug, Clone)]
@@ -201,6 +203,28 @@ impl Machine {
             }
             InstType::Halt => {
                 self.halt = true;
+            }
+            InstType::Call => { 
+                if let Word::Int(addr) = inst.operand {
+                    self.push(Word::Int(self.sbp as i64))?;
+                    self.sbp = self.sp;
+
+                    self.push(Word::Int(self.ip as i64))?;
+                    self.ip = addr as usize;
+                }
+
+            }
+            InstType::Return => {
+                self.ip = match self.pop()? {
+                    Word::Int(addr) => addr as usize,
+                    _ => return Err(Error::IllegalInst),
+                };
+
+                self.sbp = match self.pop()? {
+                    Word::Int(sbp) => sbp as usize,
+                    _ => return Err(Error::IllegalInst),
+                };
+
             }
         }
 

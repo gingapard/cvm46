@@ -22,12 +22,21 @@ impl Machine {
         Ok(self.stack[self.sp])
     }
 
+    /// Enters new Stack Frame
+    pub fn enter_frame(&mut self) {
+        self.sbp = self.sp;
+    }
+    
+    pub fn pop_frame(&mut self) {
+        self.sp = self.sbp;
+    }
+
     /// Do Binary Operation based on Word-type 
     /// TODO: add Rc<Word>
     pub fn binary_op<F>(&mut self, op: F) -> Result<(), Error>
-        where
-            F: Fn(Word, Word) -> Result<Word, Error>,
-        {
+    where
+        F: Fn(Word, Word) -> Result<Word, Error>,
+    {
             let right = self.pop()?;
             let left = self.pop()?;
             
@@ -57,8 +66,7 @@ impl Machine {
                 }
                 _ => Err(Error::IllegalInst), 
             }
-        }
-
+    }
 
     pub fn dump(&self) {
         println!("Stack:");
