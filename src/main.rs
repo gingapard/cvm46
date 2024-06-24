@@ -7,7 +7,7 @@ use exec::*;
 const STACK_CAP: usize = 1024;
 const MEMORY_CAP: usize = 1024;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Word {
     Int(i64),
     Float(f32),
@@ -48,7 +48,7 @@ impl Machine {
 fn main() -> Result<(), Error> {
     let program = vec![
         Inst::new(InstType::Pushi, Word::Int(69)),
-        Inst::new(InstType::Pushf, Word::Float(2.0)),
+        Inst::new(InstType::Pushf, Word::Float(2.3)),
         Inst::new(InstType::Mul, Word::Int(0)),
     ];
 

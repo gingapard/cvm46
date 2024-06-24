@@ -14,6 +14,8 @@ pub enum InstType {
     Mul,
     Div,
     Jmp,
+    Jeq,
+    Jne,
     Cmp,
     Store,
     Load,
@@ -161,6 +163,35 @@ impl Machine {
                 } else {
                     return Err(Error::IllegalInst);
                 }
+            }
+            InstType::Jeq | InstType::Jne => {
+                if let Word::Int(addr) = inst.operand {
+                    if addr < 0 || addr as usize >= self.program.len() {
+                        return Err(Error::IllegalJmp);
+
+                    }
+
+                    if self.sp == 0 {
+                        return Err(Error::StackUnderflow);
+                    }
+                    
+                    let value = self.pop()?;
+                    match inst.inst_type {
+                        InstType::Jeq => {
+                            if value == Word::Int(1) {
+                                self.ip = addr as usize;
+                            }
+                        }
+                        InstType::Jne => {
+                            if value == Word::Int(0) {
+                                self.ip = addr as usize;
+                            }
+                        }
+                        _ => unreachable!(),
+                    }
+                } else {
+                    return Err(Error::IllegalJmp);
+                };
             }
             InstType::Cmp => {
                 if self.sp < 2 {
