@@ -11,14 +11,18 @@
 | Pushd  | Push Double on Stack    |
 | Pushs  | Push String on Stack    |
 | Pop    | Pop value of Stack      |
-| Plus   | Add stack[sp - (1 - 2)] |
-| Sub    | sub stack[sp - (1 - 2)] |
-| Mul    | Mul stack[sp - (1 - 2)] |
-| Div    | Div stack[sp - (1 - 2)] | 
+| Plus   | Plus top of Stack       |
+| Sub    | Sub top of Stack        |
+| Mul    | Mul top of Stack        |
+| Div    | Div top of Stack        | 
 | Jmp    | Change Inst Pointer     |
+| Jeq    | Jumps if equals true    |
+| Jne    | Jumps if equals false   |
 | Cmp    | Compare value           |
-| Store  | Store on Heap           |
-| Load   | Load from Heap          |
-| Halt   | Halt Execution          |
+| Store  | Store on Heap           | 
+| Load   | Load from Heap           |
+| Halt   | Halt Execution           |
+| Call   | Jumps to create new Stack Frame |
+| Return | Jumps back to previous Stack Frame and ip
 
 **More coming**
