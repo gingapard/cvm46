@@ -41,12 +41,15 @@ impl Machine {
     }
 
     pub fn read_string(&self, segment: &Vec<Word>, ptr: usize) -> Result<String, Error> {
-        if ptr >= self.sp || ptr < 1 {
+        if ptr >= segment.len() {
             return Err(Error::SegmentationFault);
         }
         
         if let Word::Int(len) = segment[ptr] {
             let len = len as usize;
+            if ptr + 1 + len > segment.len() {
+                return Err(Error::SegmentationFault);
+            }
             
             let mut s = String::new();
             for i in ptr + 1..ptr + 1 + len {

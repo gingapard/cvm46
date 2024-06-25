@@ -9,8 +9,8 @@ pub enum Word {
     Int(i64),
     Float(f32),
     Double(f64),
-    Char(char),
     Ptr(usize),
+    Char(char),
 }
 
 pub struct Machine {
@@ -45,19 +45,26 @@ impl Machine {
 
 fn main() -> Result<(), Error> {
     let program = vec![
-        Inst::new(InstType::Pushi, Word::Int(69)),
-        Inst::new(InstType::Pushf, Word::Float(2.3)),
-        Inst::new(InstType::Mul, Word::Int(0)),
-        Inst::new(InstType::Pushf, Word::Float(2.3)),
-        Inst::new(InstType::Mul, Word::Int(0)),
-        Inst::new(InstType::Pushf, Word::Float(2.3)),
-        Inst::new(InstType::Mul, Word::Int(0)),
-        Inst::new(InstType::Pushf, Word::Float(2.3)),
-        Inst::new(InstType::Mul, Word::Int(0)),
-        Inst::new(InstType::Dup, Word::Int(0)),
+        Inst::new(InstType::Pushi, Word::Int(11)),
+        Inst::new(InstType::Pushc, Word::Char('H')),
+        Inst::new(InstType::Pushc, Word::Char('E')),
+        Inst::new(InstType::Pushc, Word::Char('L')),
+        Inst::new(InstType::Pushc, Word::Char('L')),
+        Inst::new(InstType::Pushc, Word::Char('O')),
+        Inst::new(InstType::Pushc, Word::Char(' ')),
+        Inst::new(InstType::Pushc, Word::Char('W')),
+        Inst::new(InstType::Pushc, Word::Char('O')),
+        Inst::new(InstType::Pushc, Word::Char('R')),
+        Inst::new(InstType::Pushc, Word::Char('L')),
+        Inst::new(InstType::Pushc, Word::Char('D')),
     ];
 
     let mut machine = Machine::new(program);
     machine.debug = true;
-    machine.exec()
+    let _ = machine.exec();
+
+    let s = machine.read_string(&machine.stack, 0)?;
+    println!("string: {}", s);
+
+    Ok(())
 }

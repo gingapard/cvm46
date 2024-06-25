@@ -1,12 +1,10 @@
 use super::*;
 use crate::error::Error;
-
-#[derive(Debug, Clone)]
-pub enum InstType {
-
+#[derive(Debug, Clone)] pub enum InstType {
     Pushi,  // Push Integer
     Pushf,  // Push Float (32-bit)
     Pushd,  // Push Double (64-bit)
+    Pushc,  // Push Char 
     Pop,    // Pop Stack
     Dup,    // Duplicate
           
@@ -87,6 +85,13 @@ impl Machine {
             InstType::Pushd => {
                 if let Word::Double(val) = inst.operand {
                     self.push(Word::Double(val))?;
+                } else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Pushc => {
+                if let Word::Char(val) = inst.operand {
+                    self.push(Word::Char(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
