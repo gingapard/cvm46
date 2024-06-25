@@ -1,6 +1,7 @@
 use super::*;
 
 impl Machine {
+
     /// Push to Stack
     pub fn push(&mut self, value: Word) -> Result<(), Error> {
         self.stack.push(value);
@@ -37,6 +38,35 @@ impl Machine {
     /// Leave Stack Frame
     pub fn pop_frame(&mut self) {
         self.sp = self.sbp;
+    }
+
+    pub fn read_string(&self, segment: &Vec<Word>, ptr: usize) -> Result<String, Error> {
+        if ptr >= self.sp || ptr < 1 {
+            return Err(Error::SegmentationFault);
+        }
+        
+        if let Word::Int(len) = segment[ptr] {
+            let len = len as usize;
+            
+            let mut s = String::new();
+            for i in ptr + 1..ptr + 1 + len {
+                if i >= segment.len() {
+                    return Err(Error::SegmentationFault);
+                }
+
+                if let Word::Char(c) = segment[i] {
+                    s.push(c);
+                }
+                else {
+                    return Err(Error::TypeMismatch);
+                }
+            }
+
+            Ok(s)
+        } 
+        else {
+            return Err(Error::TypeMismatch);
+        }
     }
 
     pub fn open(&mut self, filename: &usize) -> Result<(), Error> {
@@ -96,13 +126,15 @@ impl Machine {
         println!("Stack:");
         if self.sp < 1 {
             println!("  [empty]");
-        } else {
+        } 
+        else {
             for i in 0..self.sp {
                 match self.stack[i] {
                     Word::Int(val) => println!("  {} - Int({})", i, val),
                     Word::Float(val) => println!("  {} - Float({})", i, val),
                     Word::Double(val) => println!("  {} - Double({})", i, val),
                     Word::Ptr(val) => println!("  {} -> Pointer({})", i, val),
+                    Word::Char(val) => println!("  {} -> Char({})", i, val),
                 }
             }
         }

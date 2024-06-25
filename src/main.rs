@@ -9,6 +9,7 @@ pub enum Word {
     Int(i64),
     Float(f32),
     Double(f64),
+    Char(char),
     Ptr(usize),
 }
 
