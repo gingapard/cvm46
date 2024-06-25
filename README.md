@@ -10,11 +10,16 @@
 | Pushf  | Push Float on Stack     |
 | Pushd  | Push Double on Stack    |
 | Pushs  | Push String on Stack    |
-| Pop    | Pop value of Stack      |
+| Pop    | Pop value off Stack     |
+| Dup    | Duplicate top of Stack  |
 | Plus   | Plus top of Stack       |
 | Sub    | Sub top of Stack        |
 | Mul    | Mul top of Stack        |
 | Div    | Div top of Stack        | 
+| And    | Bitwise And             |
+| Or     | Bitwise Or              |
+| Xor    | Bitwise Xor             |
+| Not    | Bitwise Not             |
 | Jmp    | Change Inst Pointer     |
 | Jeq    | Jumps if equals true    |
 | Jne    | Jumps if equals false   |
@@ -23,6 +28,6 @@
 | Load   | Load from Heap           |
 | Halt   | Halt Execution           |
 | Call   | Jumps to create new Stack Frame |
-| Return | Jumps back to previous Stack Frame and ip
+| Return | Jumps back to previous Stack Frame and ip |
 
 **More coming**
