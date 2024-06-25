@@ -245,7 +245,7 @@ impl Machine {
             }
             InstType::Store => {
                 if let Word::Int(addr) = inst.operand {
-                    if addr < 0 || addr as usize >= MEMORY_CAP {
+                    if addr < 0 || addr as usize >= HEAP_CAP {
                         return Err(Error::SegmentationFault);
                     }
 
@@ -261,7 +261,7 @@ impl Machine {
             }
             InstType::Load => {
                 if let Word::Int(addr) = inst.operand {
-                    if addr < 0 || addr as usize >= MEMORY_CAP {
+                    if addr < 0 || addr as usize >= HEAP_CAP {
                         return Err(Error::SegmentationFault);
                     }
                     let value = self.memory[addr as usize];

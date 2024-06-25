@@ -5,7 +5,7 @@ use error::Error;
 use exec::*;
 
 const STACK_CAP: usize = 1024;
-const MEMORY_CAP: usize = 1024;
+const HEAP_CAP: usize = 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Word {
@@ -19,7 +19,7 @@ pub struct Machine {
     stack: [Word; STACK_CAP],
     sp: usize,
     sbp: usize,
-    memory: [Word; MEMORY_CAP],
+    memory: [Word; HEAP_CAP],
     string_memory: Vec<String>,
 
     ip: usize,
@@ -34,7 +34,7 @@ impl Machine {
             stack: [Word::Int(0); STACK_CAP],
             sp: 0,
             sbp: 0,
-            memory: [Word::Int(0); MEMORY_CAP],
+            memory: [Word::Int(0); HEAP_CAP],
             string_memory: Vec::new(),
             
             ip: 0,

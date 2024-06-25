@@ -1,6 +1,4 @@
 use super::*;
-use crate::Error::*;
-use crate::exec::*;
 
 impl Machine {
     /// Push to Stack
