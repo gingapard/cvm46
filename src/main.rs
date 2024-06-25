@@ -4,9 +4,6 @@ pub mod utils;
 use error::Error;
 use exec::*;
 
-const STACK_CAP: usize = 1024;
-const HEAP_CAP: usize = 1024;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Word {
     Int(i64),
@@ -16,10 +13,11 @@ pub enum Word {
 }
 
 pub struct Machine {
-    stack: [Word; STACK_CAP],
+    stack: Vec<Word>,
     sp: usize,
     sbp: usize,
-    heap: [Word; HEAP_CAP],
+    heap: Vec<Word>,
+    files: Vec<std::fs::File>,
 
     ip: usize,
     program: Vec<Inst>,
@@ -30,10 +28,11 @@ pub struct Machine {
 impl Machine {
     fn new(program: Vec<Inst>) -> Self {
         Machine {
-            stack: [Word::Int(0); STACK_CAP],
+            stack: Vec::new(),
             sp: 0,
             sbp: 0,
-            heap: [Word::Int(0); HEAP_CAP],
+            heap: Vec::new(),
+            files: Vec::new(),
             
             ip: 0,
             program,
@@ -48,6 +47,13 @@ fn main() -> Result<(), Error> {
         Inst::new(InstType::Pushi, Word::Int(69)),
         Inst::new(InstType::Pushf, Word::Float(2.3)),
         Inst::new(InstType::Mul, Word::Int(0)),
+        Inst::new(InstType::Pushf, Word::Float(2.3)),
+        Inst::new(InstType::Mul, Word::Int(0)),
+        Inst::new(InstType::Pushf, Word::Float(2.3)),
+        Inst::new(InstType::Mul, Word::Int(0)),
+        Inst::new(InstType::Pushf, Word::Float(2.3)),
+        Inst::new(InstType::Mul, Word::Int(0)),
+        Inst::new(InstType::Dup, Word::Int(0)),
     ];
 
     let mut machine = Machine::new(program);

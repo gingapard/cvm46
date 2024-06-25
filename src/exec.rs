@@ -1,14 +1,12 @@
 use super::*;
 use crate::error::Error;
 
-
 #[derive(Debug, Clone)]
 pub enum InstType {
 
     Pushi,  // Push Integer
     Pushf,  // Push Float (32-bit)
     Pushd,  // Push Double (64-bit)
-         
     Pop,    // Pop Stack
     Dup,    // Duplicate
           
@@ -32,9 +30,17 @@ pub enum InstType {
     Load,   // Load from Heap
             
     Halt,   // Halt Program
-            //
+            
     Call,   // Call ip
     Return, // Return to ip
+
+    Open,   // Open File
+    Close,  // Close File
+    Readf,  // Read File
+    Writef, // Write File
+
+    Read,   // Read Stdin
+    Write,  // Write Stdout
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +48,6 @@ pub struct Inst {
     inst_type: InstType,
     operand: Word,
 }
-
 impl Inst {
     pub fn new(inst_type: InstType, operand: Word) -> Self {
         Inst { inst_type, operand }
@@ -205,19 +210,19 @@ impl Machine {
 
                     }
 
-                    if self.sp == 0 {
+                    if self.sp < 1 {
                         return Err(Error::StackUnderflow);
                     }
                     
                     let value = self.pop()?;
                     match inst.inst_type {
                         InstType::Jeq => {
-                            if value == Word::Int(1) {
+                            if value == Word::Int(1 /* true */ ) {
                                 self.ip = addr as usize;
                             }
                         }
                         InstType::Jne => {
-                            if value == Word::Int(0) {
+                            if value == Word::Int(0 /* false */ ) {
                                 self.ip = addr as usize;
                             }
                         }
@@ -240,7 +245,7 @@ impl Machine {
             }
             InstType::Store => {
                 if let Word::Int(addr) = inst.operand {
-                    if addr < 0 || addr as usize >= HEAP_CAP {
+                    if addr < 0 || addr as usize > (self.heap.len() - 1) {
                         return Err(Error::SegmentationFault);
                     }
 
@@ -256,9 +261,10 @@ impl Machine {
             }
             InstType::Load => {
                 if let Word::Int(addr) = inst.operand {
-                    if addr < 0 || addr as usize >= HEAP_CAP {
+                    if addr < 0 || addr as usize > (self.heap.len() - 1) {
                         return Err(Error::SegmentationFault);
                     }
+
                     let value = self.heap[addr as usize];
                     self.push(value)?;
                 } else {
@@ -289,6 +295,24 @@ impl Machine {
                     _ => return Err(Error::IllegalInst),
                 };
 
+            }
+            InstType::Open => {
+                // TODO
+            }
+            InstType::Close => {
+                // TODO
+            }
+            InstType::Readf => {
+                // TODO
+            }
+            InstType::Writef => {
+                // TODO
+            }
+            InstType::Read => {
+                // TODO
+            }
+            InstType::Write => {
+                // TODO
             }
         }
 

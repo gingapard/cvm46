@@ -3,9 +3,8 @@ use super::*;
 impl Machine {
     /// Push to Stack
     pub fn push(&mut self, value: Word) -> Result<(), Error> {
-        if self.sp >= STACK_CAP { return Err(Error::StackOverflow); }
-        self.stack[self.sp] = value;
-        self.sp += 1;
+        self.stack.push(value);
+        self.sp = self.stack.len();
         Ok(())
     }
 
@@ -14,22 +13,19 @@ impl Machine {
         if self.sp < 1 {
             return Err(Error::StackUnderflow);
         }
+
         self.sp -= 1;
-        Ok(self.stack[self.sp])
+        Ok(self.stack.remove(self.sp))
     }
 
     /// Pushed the top of the stack again, duplicating the value
     pub fn dup(&mut self) -> Result<(), Error> {
-        if self.sp < 1{
+        if self.sp < 1 {
             return Err(Error::StackUnderflow);
         }
 
-        if self.sp >= STACK_CAP {
-            return Err(Error::StackOverflow);
-        }
-
         let value = self.stack[self.sp - 1].clone();
-        let _ = self.push(value);
+        let _ = self.push(value)?;
         Ok(())
     }
 
@@ -41,6 +37,21 @@ impl Machine {
     /// Leave Stack Frame
     pub fn pop_frame(&mut self) {
         self.sp = self.sbp;
+    }
+
+    pub fn open(&mut self, filename: &usize) -> Result<(), Error> {
+        if self.sp < 1 {
+            return Err(Error::StackUnderflow);
+        }
+
+        let mode = match self.pop()? {
+            Word::Int(mode) => mode,
+            _ => return Err(Error::IllegalOperandType),
+        };
+
+        // TODO: Handle file names
+
+        Ok(())
     }
 
     /// Do Binary Operation based on Word-type 

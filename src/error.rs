@@ -8,4 +8,5 @@ pub enum Error {
     IllegalInst,
     DivByZero,
     IllegalJmp,
+    IllegalOperandType,
 }
