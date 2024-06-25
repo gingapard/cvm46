@@ -1,4 +1,6 @@
 use super::*;
+use std::io::Write;
+use std::io::stdin;
 
 impl Machine {
 
@@ -40,6 +42,19 @@ impl Machine {
         self.sp = self.sbp;
     }
 
+    /// Push String to Stack
+    pub fn push_string(&mut self, s: &String) -> Result<(), Error> {
+        let ptr = self.sp;
+        let len = s.len();
+        
+        self.push(Word::Int(len as i64))?;
+        for ch in s.chars() {
+            self.push(Word::Char(ch))?;
+        }
+        
+        Ok(())
+    }
+
     pub fn read_string(&self, segment: &Vec<Word>, ptr: usize) -> Result<String, Error> {
         if ptr >= segment.len() {
             return Err(Error::SegmentationFault);
@@ -72,6 +87,7 @@ impl Machine {
         }
     }
 
+    /// Open File
     pub fn open(&mut self, filename: &usize) -> Result<(), Error> {
         if self.sp < 1 {
             return Err(Error::StackUnderflow);
@@ -82,7 +98,30 @@ impl Machine {
             _ => return Err(Error::IllegalOperandType),
         };
 
-        // TODO: Handle file names
+        // TODO:
+
+        Ok(())
+    }
+
+    /// Read from Stdin
+    pub fn read(&mut self) -> Result<usize, Error> {
+        let mut buffer = String::new();
+
+        stdin().read_line(&mut buffer)
+            .map_err(|_| { Error::IO } 
+        )?;
+
+        self.push_string(&buffer)?;
+
+        Ok(self.sp) 
+    }
+
+    /// Write to stdout
+    pub fn write(&self, segment: &Vec<Word>, ptr: usize) -> Result<(), Error> {
+        let s = self.read_string(&segment, ptr)?;
+        write!(std::io::stdout(), "{}", s)
+            .map_err(|_| { Error::IO } 
+        )?;
 
         Ok(())
     }

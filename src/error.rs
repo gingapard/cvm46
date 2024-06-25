@@ -10,4 +10,5 @@ pub enum Error {
     IllegalJmp,
     IllegalOperandType,
     TypeMismatch,
+    IO,
 }
