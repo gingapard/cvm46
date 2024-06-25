@@ -4,24 +4,30 @@ use crate::error::Error;
 
 #[derive(Debug, Clone)]
 pub enum InstType {
-    Pushi,
-    Pushf,
-    Pushd,
-    Pushs,
-    Pop,
-    Plus,
-    Sub,
-    Mul,
-    Div,
-    Jmp,
-    Jeq,
-    Jne,
-    Cmp,
-    Store,
-    Load,
-    Halt,
-    Call,
-    Return,
+
+    Pushi,  // Push Integer
+    Pushf,  // Push Float (32-bit)
+    Pushd,  // Push Double (64-bit)
+    Pushs,  // Push String
+    Pop,    // Pop Stack
+    Dup,    // Duplicate
+    Plus,   // Plus op
+    Sub,    // Sub op
+    Mul,    // Mul op
+    Div,    // Div op
+    And,    // Bitwise And op
+    Or,     // Bitwise Or op
+    Xor,    // Bitwise Xor op
+    Not,    // Bitwise Not op
+    Jmp,    // Jump
+    Jeq,    // Jump if Equal
+    Jne,    // Jump if not Equal
+    Cmp,    // Compare
+    Store,  // Store on Heap
+    Load,   // Load from Heap
+    Halt,   // Halt Program
+    Call,   // Call ip
+    Return, // Return to ip
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +92,9 @@ impl Machine {
             }
             InstType::Pop => {
                 self.pop()?;
+            }
+            InstType::Dup => {
+                self.dup()?;
             }
             InstType::Plus => {
                 if self.sp < 2 {
@@ -152,6 +161,35 @@ impl Machine {
                     }
                     _ => Err(Error::IllegalInst),
                 })?;
+            }
+            InstType::And => {
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int(a & b)),
+                    _ => Err(Error::IllegalInst),
+                })?;
+            }
+            InstType::Or => {
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int(a | b)),
+                    _ => Err(Error::IllegalInst),
+                })?;
+            }
+            InstType::Xor => {
+                self.binary_op(|a, b| match (a, b) {
+                    (Word::Int(a), Word::Int(b)) => Ok(Word::Int(a ^ b)),
+                    _ => Err(Error::IllegalInst),
+                })?;
+            }
+            InstType::Not => {
+                if self.sp < 1 {
+                    return Err(Error::StackUnderflow);
+                }
+
+                let value = self.pop()?;
+                match value {
+                    Word::Int(a) => self.push(Word::Int(!a))?,
+                    _ => return Err(Error::IllegalInst),
+                }
             }
             InstType::Jmp => {
                 if let Word::Int(addr) = inst.operand {

@@ -22,6 +22,21 @@ impl Machine {
         Ok(self.stack[self.sp])
     }
 
+    /// Pushed the top of the stack again, duplicating the value
+    pub fn dup(&mut self) -> Result<(), Error> {
+        if self.sp < 1{
+            return Err(Error::StackUnderflow);
+        }
+
+        if self.sp >= STACK_CAP {
+            return Err(Error::StackOverflow);
+        }
+
+        let value = self.stack[self.sp - 1].clone();
+        let _ = self.push(value);
+        Ok(())
+    }
+
     /// Enters new Stack Frame
     pub fn enter_frame(&mut self) {
         self.sbp = self.sp;
