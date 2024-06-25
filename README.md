@@ -28,5 +28,11 @@
 | Halt   | Halt Execution           |
 | Call   | Jumps to create new Stack Frame |
 | Return | Jumps back to previous Stack Frame and ip |
+| Open   | Open File               |
+| Close  | Close File              |
+| Readf  | Read File               |
+| Writef | Write File              |
+| Read   | Read Stdin              |
+| Write  | Write Stdout            |
 
 **More coming**
