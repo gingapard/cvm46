@@ -8,24 +8,31 @@ pub enum InstType {
     Pushi,  // Push Integer
     Pushf,  // Push Float (32-bit)
     Pushd,  // Push Double (64-bit)
-    Pushs,  // Push String
+         
     Pop,    // Pop Stack
     Dup,    // Duplicate
+          
     Plus,   // Plus op
     Sub,    // Sub op
     Mul,    // Mul op
     Div,    // Div op
+           
     And,    // Bitwise And op
     Or,     // Bitwise Or op
     Xor,    // Bitwise Xor op
     Not,    // Bitwise Not op
+            
     Jmp,    // Jump
     Jeq,    // Jump if Equal
     Jne,    // Jump if not Equal
+           
     Cmp,    // Compare
+           
     Store,  // Store on Heap
     Load,   // Load from Heap
+            
     Halt,   // Halt Program
+            //
     Call,   // Call ip
     Return, // Return to ip
 }
@@ -75,17 +82,6 @@ impl Machine {
             InstType::Pushd => {
                 if let Word::Double(val) = inst.operand {
                     self.push(Word::Double(val))?;
-                } else {
-                    return Err(Error::IllegalInst);
-                }
-            }
-            InstType::Pushs => {
-                if let Word::Str(index) = inst.operand {
-                    if index < self.string_memory.len() {
-                        self.push(Word::Str(index))?;
-                    } else {
-                        return Err(Error::IllegalInst);
-                    }
                 } else {
                     return Err(Error::IllegalInst);
                 }
@@ -239,7 +235,6 @@ impl Machine {
                     (Word::Int(a), Word::Int(b)) => Ok(Word::Int((a == b) as i64)),
                     (Word::Float(a), Word::Float(b)) => Ok(Word::Int((a == b) as i64)),
                     (Word::Double(a), Word::Double(b)) => Ok(Word::Int((a == b) as i64)),
-                    (Word::Str(_), Word::Str(_)) => Err(Error::IllegalInst), 
                     _ => Err(Error::IllegalInst),
                 })?;
             }
@@ -254,7 +249,7 @@ impl Machine {
                     }
 
                     let value = self.pop()?;
-                    self.memory[addr as usize] = value;
+                    self.heap[addr as usize] = value;
                 } else {
                     return Err(Error::IllegalInst);
                 }
@@ -264,7 +259,7 @@ impl Machine {
                     if addr < 0 || addr as usize >= HEAP_CAP {
                         return Err(Error::SegmentationFault);
                     }
-                    let value = self.memory[addr as usize];
+                    let value = self.heap[addr as usize];
                     self.push(value)?;
                 } else {
                     return Err(Error::IllegalInst);

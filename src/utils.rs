@@ -3,9 +3,7 @@ use super::*;
 impl Machine {
     /// Push to Stack
     pub fn push(&mut self, value: Word) -> Result<(), Error> {
-        if self.sp >= STACK_CAP {
-            return Err(Error::StackOverflow);
-        }
+        if self.sp >= STACK_CAP { return Err(Error::StackOverflow); }
         self.stack[self.sp] = value;
         self.sp += 1;
         Ok(())
@@ -40,6 +38,7 @@ impl Machine {
         self.sbp = self.sp;
     }
     
+    /// Leave Stack Frame
     pub fn pop_frame(&mut self) {
         self.sp = self.sbp;
     }
@@ -81,6 +80,7 @@ impl Machine {
             }
     }
 
+
     pub fn dump(&self) {
         println!("Stack:");
         if self.sp < 1 {
@@ -91,7 +91,7 @@ impl Machine {
                     Word::Int(val) => println!("  {} - Int({})", i, val),
                     Word::Float(val) => println!("  {} - Float({})", i, val),
                     Word::Double(val) => println!("  {} - Double({})", i, val),
-                    Word::Str(index) => println!("  {} - Str({})", i, self.string_memory[index]),
+                    Word::Ptr(val) => println!("  {} -> Pointer({})", i, val),
                 }
             }
         }

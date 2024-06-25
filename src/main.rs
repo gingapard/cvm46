@@ -12,15 +12,14 @@ pub enum Word {
     Int(i64),
     Float(f32),
     Double(f64),
-    Str(usize),
+    Ptr(usize),
 }
 
 pub struct Machine {
     stack: [Word; STACK_CAP],
     sp: usize,
     sbp: usize,
-    memory: [Word; HEAP_CAP],
-    string_memory: Vec<String>,
+    heap: [Word; HEAP_CAP],
 
     ip: usize,
     program: Vec<Inst>,
@@ -34,8 +33,7 @@ impl Machine {
             stack: [Word::Int(0); STACK_CAP],
             sp: 0,
             sbp: 0,
-            memory: [Word::Int(0); HEAP_CAP],
-            string_memory: Vec::new(),
+            heap: [Word::Int(0); HEAP_CAP],
             
             ip: 0,
             program,

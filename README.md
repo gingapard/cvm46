@@ -9,7 +9,6 @@
 | Pushi  | Push Integer on Stack   |
 | Pushf  | Push Float on Stack     |
 | Pushd  | Push Double on Stack    |
-| Pushs  | Push String on Stack    |
 | Pop    | Pop value off Stack     |
 | Dup    | Duplicate top of Stack  |
 | Plus   | Plus top of Stack       |
