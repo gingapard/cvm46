@@ -55,24 +55,24 @@ impl Machine {
         Ok(())
     }
 
-    pub fn read_string(&self, segment: &Vec<Word>, ptr: usize) -> Result<String, Error> {
-        if ptr >= segment.len() {
+    pub fn read_string(&self, ptr: usize) -> Result<String, Error> {
+        if ptr >= self.sp {
             return Err(Error::SegmentationFault);
         }
         
-        if let Word::Int(len) = segment[ptr] {
+        if let Word::Int(len) = self.stack[ptr] {
             let len = len as usize;
-            if ptr + 1 + len > segment.len() {
+            if ptr + 1 + len > self.sp {
                 return Err(Error::SegmentationFault);
             }
             
             let mut s = String::new();
             for i in ptr + 1..ptr + 1 + len {
-                if i >= segment.len() {
+                if i >= self.sp {
                     return Err(Error::SegmentationFault);
                 }
 
-                if let Word::Char(c) = segment[i] {
+                if let Word::Char(c) = self.stack[i] {
                     s.push(c);
                 }
                 else {
@@ -118,7 +118,7 @@ impl Machine {
 
     /// Write to stdout
     pub fn write(&self, segment: &Vec<Word>, ptr: usize) -> Result<(), Error> {
-        let s = self.read_string(&segment, ptr)?;
+        let s = self.read_string(ptr)?;
         write!(std::io::stdout(), "{}", s)
             .map_err(|_| { Error::IO } 
         )?;

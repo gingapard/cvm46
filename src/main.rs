@@ -22,9 +22,9 @@ pub struct Machine {
 
     ip: usize,
     program: Vec<Inst>,
-
     exit: bool,
     halt: bool,
+
     debug: bool,
 }
 
@@ -67,7 +67,7 @@ fn main() -> Result<(), Error> {
     machine.debug = true;
     let _ = machine.exec();
 
-    let s = machine.read_string(&machine.stack, 0)?;
+    let s = machine.read_string(0)?;
     println!("string: {}", s);
 
     Ok(())
