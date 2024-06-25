@@ -22,6 +22,8 @@ pub struct Machine {
 
     ip: usize,
     program: Vec<Inst>,
+
+    exit: bool,
     halt: bool,
     debug: bool,
 }
@@ -37,6 +39,8 @@ impl Machine {
             
             ip: 0,
             program,
+
+            exit: false,
             halt: false,
             debug: false,
         }

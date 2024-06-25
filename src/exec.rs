@@ -22,6 +22,8 @@ use crate::error::Error;
     Jeq,    // Jump if Equal
     Jne,    // Jump if not Equal
     Halt,   // Halt Execution 
+    Call,   // Call ip
+    Return, // Return to ip
     Exit,   // Stop Execution
            
     Cmp,    // Compare
@@ -29,8 +31,6 @@ use crate::error::Error;
     Store,  // Store on Heap
     Load,   // Load from Heap
             
-    Call,   // Call ip
-    Return, // Return to ip
 
     Open,   // Open File
     Close,  // Close File
@@ -56,6 +56,10 @@ impl Machine {
     /// Execute whole program
     pub fn exec(&mut self) -> Result<(), Error> {
         while self.ip < self.program.len() && !self.halt {
+            if self.exit {
+                break;
+            }
+
             let inst = self.program[self.ip].clone();
             self.ip += 1;
             self.exec_inst(&inst)?;
@@ -240,13 +244,30 @@ impl Machine {
             InstType::Halt => {
                 self.halt = true;
             }
+            InstType::Call => { 
+                if let Word::Int(addr) = inst.operand {
+                    self.push(Word::Int(self.sbp as i64))?;
+                    self.sbp = self.sp;
+
+                    self.push(Word::Int(self.ip as i64))?;
+                    self.ip = addr as usize;
+                }
+
+            }
+            InstType::Return => {
+                self.ip = match self.pop()? {
+                    Word::Int(addr) => addr as usize,
+                    _ => return Err(Error::IllegalInst),
+                };
+
+                self.sbp = match self.pop()? {
+                    Word::Int(sbp) => sbp as usize,
+                    _ => return Err(Error::IllegalInst),
+                };
+
+            }
             InstType::Exit => {
-                if let Word::Int(exit_code) = inst.operand {
-                    std::process::exit(exit_code as i32);
-                }
-                else {
-                    return Err(Error::IllegalInst);
-                }
+                self.exit(inst.operand);
             }
             InstType::Cmp => {
                 if self.sp < 2 {
@@ -287,28 +308,6 @@ impl Machine {
                     return Err(Error::IllegalInst);
                 }
             }
-            InstType::Call => { 
-                if let Word::Int(addr) = inst.operand {
-                    self.push(Word::Int(self.sbp as i64))?;
-                    self.sbp = self.sp;
-
-                    self.push(Word::Int(self.ip as i64))?;
-                    self.ip = addr as usize;
-                }
-
-            }
-            InstType::Return => {
-                self.ip = match self.pop()? {
-                    Word::Int(addr) => addr as usize,
-                    _ => return Err(Error::IllegalInst),
-                };
-
-                self.sbp = match self.pop()? {
-                    Word::Int(sbp) => sbp as usize,
-                    _ => return Err(Error::IllegalInst),
-                };
-
-            }
             InstType::Open => {
                 // TODO
             }
@@ -322,10 +321,12 @@ impl Machine {
                 // TODO
             }
             InstType::Read => {
-                // TODO
+                self.read()?;
             }
             InstType::Write => {
-                // TODO
+                if let Word::Int(ptr) = inst.operand {
+                    self.write(&self.stack, ptr as usize)?;
+                }
             }
         }
 

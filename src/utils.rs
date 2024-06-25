@@ -126,6 +126,12 @@ impl Machine {
         Ok(())
     }
 
+
+    pub fn exit(&mut self, exit_code: Word) {
+        let _ = self.push(exit_code);
+        self.exit = true;
+    }
+
     /// Do Binary Operation based on Word-type 
     /// TODO: add Rc<Word>
     pub fn binary_op<F>(&mut self, op: F) -> Result<(), Error>
