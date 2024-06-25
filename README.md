@@ -23,12 +23,12 @@
 | Jeq    | Jump if true            |
 | Jne    | Jump if false           |
 | Halt   | Halt Execution          |
+| Call   | Jumps to create new Stack Frame |
+| Return | Jumps back to previous Stack Frame and ip |
 | Exit   | Exit and Stop Execution |
 | Cmp    | Compare values          |
 | Store  | Store on Heap           | 
 | Load   | Load from Heap           |
-| Call   | Jumps to create new Stack Frame |
-| Return | Jumps back to previous Stack Frame and ip |
 | Open   | Open File               |
 | Close  | Close File              |
 | Readf  | Read File               |
