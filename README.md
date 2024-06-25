@@ -20,12 +20,13 @@
 | Xor    | Bitwise Xor             |
 | Not    | Bitwise Not             |
 | Jmp    | Change Inst Pointer     |
-| Jeq    | Jumps if equals true    |
-| Jne    | Jumps if equals false   |
-| Cmp    | Compare value           |
+| Jeq    | Jump if true            |
+| Jne    | Jump if false           |
+| Halt   | Halt Execution          |
+| Exit   | Exit and Stop Execution |
+| Cmp    | Compare values          |
 | Store  | Store on Heap           | 
 | Load   | Load from Heap           |
-| Halt   | Halt Execution           |
 | Call   | Jumps to create new Stack Frame |
 | Return | Jumps back to previous Stack Frame and ip |
 | Open   | Open File               |

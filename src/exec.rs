@@ -23,13 +23,13 @@ pub enum InstType {
     Jmp,    // Jump
     Jeq,    // Jump if Equal
     Jne,    // Jump if not Equal
+    Halt,   // Halt Execution 
+    Exit,   // Stop Execution
            
     Cmp,    // Compare
            
     Store,  // Store on Heap
     Load,   // Load from Heap
-            
-    Halt,   // Halt Program
             
     Call,   // Call ip
     Return, // Return to ip
@@ -232,6 +232,17 @@ impl Machine {
                     return Err(Error::IllegalJmp);
                 };
             }
+            InstType::Halt => {
+                self.halt = true;
+            }
+            InstType::Exit => {
+                if let Word::Int(exit_code) = inst.operand {
+                    std::process::exit(exit_code as i32);
+                }
+                else {
+                    return Err(Error::IllegalInst);
+                }
+            }
             InstType::Cmp => {
                 if self.sp < 2 {
                     return Err(Error::StackUnderflow);
@@ -270,9 +281,6 @@ impl Machine {
                 } else {
                     return Err(Error::IllegalInst);
                 }
-            }
-            InstType::Halt => {
-                self.halt = true;
             }
             InstType::Call => { 
                 if let Word::Int(addr) = inst.operand {
