@@ -1,6 +1,7 @@
 use super::*;
 use crate::error::Error;
-#[derive(Debug, Clone)] pub enum InstType {
+#[derive(Debug, Clone)] 
+pub enum InstType {
     Pushi,  // Push Integer
     Pushf,  // Push Float (32-bit)
     Pushd,  // Push Double (64-bit)
@@ -29,7 +30,9 @@ use crate::error::Error;
     Cmp,    // Compare
            
     Store,  // Store on Heap
+    Stores, // Store Structure
     Load,   // Load from Heap
+    Loads,  // Load Structure
             
 
     Open,   // Open File
@@ -46,6 +49,7 @@ pub struct Inst {
     inst_type: InstType,
     operand: Word,
 }
+
 impl Inst {
     pub fn new(inst_type: InstType, operand: Word) -> Self {
         Inst { inst_type, operand }
@@ -307,6 +311,12 @@ impl Machine {
                 } else {
                     return Err(Error::IllegalInst);
                 }
+            }
+            InstType::Stores => {
+                // TODO: Store Segment
+            }
+            InstType::Loads => {
+                // TODO: Store Segment
             }
             InstType::Open => {
                 // TODO

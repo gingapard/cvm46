@@ -7,7 +7,7 @@ impl Machine {
     /// Push to Stack
     pub fn push(&mut self, value: Word) -> Result<(), Error> {
         self.stack.push(value);
-        self.sp = self.stack.len();
+        self.sp += 1;
         Ok(())
     }
 
@@ -42,45 +42,38 @@ impl Machine {
         self.sp = self.sbp;
     }
 
-    /// Push String to Stack
-    pub fn push_string(&mut self, s: &String) -> Result<(), Error> {
-        let ptr = self.sp;
-        let len = s.len();
-        
-        self.push(Word::Int(len as i64))?;
-        for ch in s.chars() {
-            self.push(Word::Char(ch))?;
+    /// Push arr to Stack in revere order and return ptr to it's length
+    pub fn push_arr(&mut self, arr: &[Word]) -> Result<usize, Error> {
+        for &elem in arr.iter().rev() {
+            self.push(elem)?;
         }
-        
-        Ok(())
+
+        self.push(Word::Int(arr.len() as i64))?;
+        Ok(self.sp - 1)
     }
 
-    pub fn read_string(&self, ptr: usize) -> Result<String, Error> {
-        if ptr >= self.sp {
+    pub fn read_arr(&self, segment: &[Word], ptr: usize) -> Result<Vec<Word>, Error> {
+        if ptr >= segment.len() {
+            println!("0");
             return Err(Error::SegmentationFault);
         }
         
-        if let Word::Int(len) = self.stack[ptr] {
+        if let Word::Int(len) = segment[ptr] {
             let len = len as usize;
-            if ptr + 1 + len > self.sp {
+
+            let start = ptr.saturating_sub(1).saturating_sub(len);
+            let end = ptr.saturating_sub(1);
+
+            if end >= segment.len() || start >= segment.len() || start > end {
+                println!("1");
                 return Err(Error::SegmentationFault);
             }
+
+            let arr_slice = &segment[start..=end];
+            let mut arr = arr_slice.to_vec();
+            arr.reverse();
             
-            let mut s = String::new();
-            for i in ptr + 1..ptr + 1 + len {
-                if i >= self.sp {
-                    return Err(Error::SegmentationFault);
-                }
-
-                if let Word::Char(c) = self.stack[i] {
-                    s.push(c);
-                }
-                else {
-                    return Err(Error::TypeMismatch);
-                }
-            }
-
-            Ok(s)
+            Ok(arr)
         } 
         else {
             return Err(Error::TypeMismatch);
@@ -103,29 +96,42 @@ impl Machine {
         Ok(())
     }
 
-    /// Read from Stdin
+    /// Read from Stdin returns pointer
     pub fn read(&mut self) -> Result<usize, Error> {
         let mut buffer = String::new();
 
         stdin().read_line(&mut buffer)
             .map_err(|_| { Error::IO } 
         )?;
+        
+        if buffer.ends_with('\n') {
+            buffer.pop();
+        }
 
-        self.push_string(&buffer)?;
+        let str_arr: Vec<Word> = buffer.chars().map(Word::Char).collect();
+        let _ = self.push_arr(&str_arr);
 
         Ok(self.sp) 
     }
 
-    /// Write to stdout
-    pub fn write(&self, segment: &Vec<Word>, ptr: usize) -> Result<(), Error> {
-        let s = self.read_string(ptr)?;
-        write!(std::io::stdout(), "{}", s)
-            .map_err(|_| { Error::IO } 
-        )?;
+    /// Write to stdout from string ptr
+    pub fn write(&self, segment: &[Word], ptr: usize) -> Result<(), Error> {
+        let arr = self.read_arr(segment, ptr)?;
+
+        // Convert to String
+        let string: String = arr.iter()
+            .map(|word| Ok(match word {
+                Word::Char(c) => *c,
+                _ => return Err(Error::TypeMismatch),
+            }))
+            .collect::<Result<String, Error>>()?;
+
+        // Write the string to stdout
+        write!(std::io::stdout(), "{}", string)
+            .map_err(|_| Error::IO)?;
 
         Ok(())
     }
-
 
     pub fn exit(&mut self, exit_code: Word) {
         let _ = self.push(exit_code);

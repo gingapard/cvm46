@@ -1,7 +1,6 @@
 pub mod error;
 pub mod exec;
-pub mod utils;
-use error::Error;
+pub mod utils; use error::Error;
 use exec::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -49,26 +48,22 @@ impl Machine {
 
 fn main() -> Result<(), Error> {
     let program = vec![
-        Inst::new(InstType::Pushi, Word::Int(11)),
-        Inst::new(InstType::Pushc, Word::Char('H')),
-        Inst::new(InstType::Pushc, Word::Char('E')),
-        Inst::new(InstType::Pushc, Word::Char('L')),
-        Inst::new(InstType::Pushc, Word::Char('L')),
-        Inst::new(InstType::Pushc, Word::Char('O')),
-        Inst::new(InstType::Pushc, Word::Char(' ')),
-        Inst::new(InstType::Pushc, Word::Char('W')),
-        Inst::new(InstType::Pushc, Word::Char('O')),
-        Inst::new(InstType::Pushc, Word::Char('R')),
-        Inst::new(InstType::Pushc, Word::Char('L')),
-        Inst::new(InstType::Pushc, Word::Char('D')),
+    ];
+
+    let arr = vec![
+        Word::Char('H'),
+        Word::Char('e'),
+        Word::Char('l'),
+        Word::Char('l'),
+        Word::Char('o'),
     ];
 
     let mut machine = Machine::new(program);
     machine.debug = true;
-    let _ = machine.exec();
 
-    let s = machine.read_string(0)?;
-    println!("string: {}", s);
+    let ptr = machine.push_arr(&arr)?;
+    let s = machine.read_arr(&machine.stack, ptr)?;
+    println!("{:?}", s);
 
     Ok(())
 }
