@@ -43,18 +43,43 @@ impl Machine {
     }
 
     /// Push arr to Stack in revere order and return ptr to it's length
-    pub fn push_arr(&mut self, arr: &[Word]) -> Result<usize, Error> {
+    pub fn push_arr(&mut self, arr: &[Word]) -> Result<Pointer, Error> {
         for &elem in arr.iter().rev() {
             self.push(elem)?;
         }
 
         self.push(Word::Int(arr.len() as i64))?;
-        Ok(self.sp - 1)
+        
+        let ptr = Pointer::Stack(self.sp - 1);
+        Ok(ptr)
     }
 
-    pub fn read_arr(&self, segment: &[Word], ptr: usize) -> Result<Vec<Word>, Error> {
+    /// Stores Array/Segment on Heap Returning Pointer::Heap
+    pub fn stores(&mut self, ptr: Pointer) -> Result<Pointer, Error> {
+        let arr = self.read_arr(ptr)?;
+        for &elem in arr.iter().rev() {
+            self.heap.push(elem);
+        }
+
+        self.heap.push(Word::Int(arr.len() as i64));
+        self.hp += arr.len() + 1;
+
+        let heap_ptr = Pointer::Heap(self.hp - 1);
+        self.push(Word::Ptr(heap_ptr))?;
+        Ok(heap_ptr)
+    }
+
+    // Reads from Pointer 
+    pub fn read_arr(&self, ptr: Pointer) -> Result<Vec<Word>, Error> {
+        let segment = match ptr {
+            Pointer::Heap(_) => &self.heap,
+            Pointer::Stack(_) => &self.stack,
+            _ => return Err(Error::InvalidPointer),
+        };
+
+        let ptr = ptr.as_usize();
+
         if ptr >= segment.len() {
-            println!("0");
             return Err(Error::SegmentationFault);
         }
         
@@ -65,7 +90,6 @@ impl Machine {
             let end = ptr.saturating_sub(1);
 
             if end >= segment.len() || start >= segment.len() || start > end {
-                println!("1");
                 return Err(Error::SegmentationFault);
             }
 
@@ -115,8 +139,8 @@ impl Machine {
     }
 
     /// Write to stdout from string ptr
-    pub fn write(&self, segment: &[Word], ptr: usize) -> Result<(), Error> {
-        let arr = self.read_arr(segment, ptr)?;
+    pub fn write(&self, ptr: Pointer) -> Result<(), Error> {
+        let arr = self.read_arr(ptr)?;
 
         // Convert to String
         let string: String = arr.iter()
@@ -187,7 +211,7 @@ impl Machine {
                     Word::Int(val) => println!("  {} - Int({})", i, val),
                     Word::Float(val) => println!("  {} - Float({})", i, val),
                     Word::Double(val) => println!("  {} - Double({})", i, val),
-                    Word::Ptr(val) => println!("  {} -> Pointer({})", i, val),
+                    Word::Ptr(val) => println!("  {} -> Pointer({})", i, val.as_usize()),
                     Word::Char(val) => println!("  {} -> Char({})", i, val),
                 }
             }

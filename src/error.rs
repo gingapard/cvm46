@@ -11,4 +11,5 @@ pub enum Error {
     IllegalOperandType,
     TypeMismatch,
     IO,
+    InvalidPointer,
 }

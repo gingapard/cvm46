@@ -1,5 +1,6 @@
 use super::*;
 use crate::error::Error;
+
 #[derive(Debug, Clone)] 
 pub enum InstType {
     Pushi,  // Push Integer
@@ -313,7 +314,16 @@ impl Machine {
                 }
             }
             InstType::Stores => {
-                // TODO: Store Segment
+                if let Word::Ptr(ptr) = inst.operand {
+                    let stack_ptr = ptr.as_usize();
+                    let heap_ptr = self.stores(Pointer::Stack(stack_ptr))?;
+                    self.push(Word::Ptr(heap_ptr))?;
+
+                    // TODO: Pop/Free old
+                }
+                else {
+                    return Err(Error::InvalidPointer);
+                }
             }
             InstType::Loads => {
                 // TODO: Store Segment
@@ -334,8 +344,8 @@ impl Machine {
                 self.read()?;
             }
             InstType::Write => {
-                if let Word::Int(ptr) = inst.operand {
-                    self.write(&self.stack, ptr as usize)?;
+                if let Word::Ptr(ptr) = inst.operand {
+                    self.write(ptr)?;
                 }
             }
         }
