@@ -29,6 +29,7 @@ pub enum Word {
     Double(f64),
     Ptr(Pointer),
     Char(char),
+    Free,
 }
 
 pub struct Machine {

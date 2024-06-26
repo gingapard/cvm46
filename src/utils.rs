@@ -54,7 +54,48 @@ impl Machine {
         Ok(ptr)
     }
 
+    pub fn free(&mut self, ptr: Pointer) -> Result<(), Error> {
+        let segment = match ptr {
+            Pointer::Stack(_) => &mut self.stack,
+            Pointer::Heap(_) => &mut self.heap,
+            _ => return Err(Error::InvalidPointer),
+        };
+
+        let ptr = ptr.as_usize();
+        if ptr >= segment.len() {
+            return Err(Error::SegmentationFault);
+        }
+
+        if let Word::Int(len) = segment[ptr] {
+            let len = len as usize;
+            let end = ptr - 1;
+            let start = if ptr >= len + 1 {
+                ptr - len - 1 
+            } 
+            else { 
+                return Err(Error::SegmentationFault)
+            };
+
+
+            if end >= segment.len() || start >= segment.len() || start > end {
+                return Err(Error::SegmentationFault);
+            }
+
+            for i in start..=end {
+                segment[i] = Word::Free;
+            }
+
+            segment[ptr] = Word::Free;
+        }
+        else {
+            return Err(Error::TypeMismatch);
+        }
+
+        Ok(())
+    }
+
     /// Stores Array/Segment on Heap Returning Pointer::Heap
+    /// TODO: Store based on Word::Free in heap
     pub fn stores(&mut self, ptr: Pointer) -> Result<Pointer, Error> {
         let arr = self.read_arr(ptr)?;
         for &elem in arr.iter().rev() {
@@ -213,6 +254,7 @@ impl Machine {
                     Word::Double(val) => println!("  {} - Double({})", i, val),
                     Word::Ptr(val) => println!("  {} -> Pointer({})", i, val.as_usize()),
                     Word::Char(val) => println!("  {} -> Char({})", i, val),
+                    _ => continue,
                 }
             }
         }

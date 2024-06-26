@@ -9,7 +9,6 @@ pub enum InstType {
     Pushc,  // Push Char 
     Pop,    // Pop Stack
     Dup,    // Duplicate
-          
     Plus,   // Plus op
     Sub,    // Sub op
     Mul,    // Mul op
