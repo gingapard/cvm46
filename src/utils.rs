@@ -79,7 +79,7 @@ impl Machine {
             }
 
             // Freeing the segment by setting all elements to Word::Free
-            for i in (start..end).rev() {
+            for i in start..end {
                 segment[i] = Word::Free;
             }
 

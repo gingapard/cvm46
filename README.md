@@ -9,6 +9,8 @@
 | Pushi  | Push Integer on Stack   |
 | Pushf  | Push Float on Stack     |
 | Pushd  | Push Double on Stack    |
+| Pushc  | Push Char on Stack      |
+| Pushr  | Push Register on Stack  |
 | Pop    | Pop value off Stack     |
 | Dup    | Duplicate top of Stack  |
 | Plus   | Plus top of Stack       |
@@ -26,15 +28,13 @@
 | Call   | Jumps to create new Stack Frame |
 | Return | Jumps back to previous Stack Frame and ip |
 | Exit   | Exit and Stop Execution |
-| Cmp    | Compare values          |
+| Cmp    | Compare Top of Stack    |
 | Alloc  | Allocate Memory         |
 | Free   | Free Memory             |
 | Set    | Set Element             |
 | Mov    | Mov to register         |
-| Loadr  | Load Register           |
-| Storer | Store Register          |
-| Store  | Store on Heap           | 
-| Load   | Load from Heap           |
+| Loadr  | Load Register from Heap          |
+| Storer | Store Register in Heap         |
 | Open   | Open File               |
 | Close  | Close File              |
 | Readf  | Read File               |

@@ -7,6 +7,7 @@ pub enum InstType {
     Pushf,  // Push Float (32-bit)
     Pushd,  // Push Double (64-bit)
     Pushc,  // Push Char 
+    Pushr,  // Push Register 
     Pop,    // Pop Stack
     Dup,    // Duplicate
     Plus,   // Plus op
@@ -33,9 +34,9 @@ pub enum InstType {
     Free,   // Free Array on Heap
     Set,    // Sets Element. Needs pointer to Target Element
 
-    Mov,    // Copy Value from memory in to register
-    Loadr,
-    Storer,
+    Mov,    // Copy Value from memory into register
+    Loadr,  // Load value from Heap into register
+    Storer, // Store register value on heap
  
     Open,   // Open File
     Close,  // Close File
@@ -104,6 +105,20 @@ impl Machine {
                 if let Word::Char(val) = inst.operand[0]{
                     self.push(Word::Char(val))?;
                 } else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Pushr => {
+                if let Word::Ptr(ptr) = inst.operand[0] {
+                    let reg_index = ptr.as_usize();
+                    if reg_index >= self.registers.len() {
+                        return Err(Error::IllegalInst);
+                    }
+
+                    let value = self.registers[reg_index];
+                    self.push(value)?;
+                }
+                else {
                     return Err(Error::IllegalInst);
                 }
             }
@@ -287,6 +302,8 @@ impl Machine {
                     _ => Err(Error::IllegalInst),
                 })?;
             }
+
+            // Allocate space and Push Pointer on Stack
             InstType::Alloc => {
                 if let Word::Int(size) = inst.operand[0] {
                     let ptr = self.malloc(size as usize)?;
@@ -314,8 +331,9 @@ impl Machine {
                 }
             }
             InstType::Mov => {
-                if let Word::Ptr(ptr) = inst.operand[0] {
-                    let reg_index = ptr.as_usize();
+                if let Word::Ptr(register_ptr) = inst.operand[0] {
+
+                    let reg_index = register_ptr.as_usize();
                     if reg_index >= self.registers.len() {
                         return Err(Error::IllegalInst);
                     }
@@ -326,19 +344,32 @@ impl Machine {
                     return Err(Error::IllegalInst);
                 }
             }
+
+            // Load Single Word from Heap into register
             InstType::Loadr => {
                 if let Word::Ptr(ptr) = inst.operand[0] {
                     let reg_index = ptr.as_usize();
                     if reg_index >= self.registers.len() {
                         return Err(Error::IllegalInst);
                     }
-                    // TODO: Load Register onto stack
 
+                    let heap_ptr = match inst.operand[1] {
+                        Word::Ptr(ptr) => ptr.as_usize(),
+                        _ => return Err(Error::IllegalInst),
+                    };
+
+                    if heap_ptr >= self.heap.len() {
+                        return Err(Error::SegmentationFault);
+                    }
+
+                    self.registers[reg_index] = self.heap[heap_ptr];
                 }
                 else {
                     return Err(Error::IllegalInst);
                 }
             }
+
+            // For Storing single Word Register on Heap change register to now contain pointer
             InstType::Storer => {
                 if let Word::Ptr(reg_ptr) = inst.operand[0] {
                     let reg_index = reg_ptr.as_usize();
@@ -349,7 +380,7 @@ impl Machine {
                     
                     let heap_ptr = self.malloc(1)?;
                     self.setelem(heap_ptr, self.registers[reg_index])?;
-
+                    self.registers[reg_index] = Word::Ptr(heap_ptr);
                 } else {
                     return Err(Error::IllegalInst);
                 }
