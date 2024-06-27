@@ -29,12 +29,14 @@ pub enum InstType {
            
     Cmp,    // Compare
            
-    Store,  // Store on Heap
-    Stores, // Store Structure
-    Load,   // Load from Heap
-    Loads,  // Load Structure
-            
+    Alloc,  // Allocate Array on Heap
+    Free,   // Free Array on Heap
+    Set,    // Sets Element. Needs pointer to Target Element
 
+    Mov,  
+    Loadr,
+    Storer,
+ 
     Open,   // Open File
     Close,  // Close File
     Readf,  // Read File
@@ -42,6 +44,7 @@ pub enum InstType {
 
     Read,   // Read Stdin
     Write,  // Write Stdout
+
 }
 
 #[derive(Debug, Clone)]
@@ -284,48 +287,85 @@ impl Machine {
                     _ => Err(Error::IllegalInst),
                 })?;
             }
-            InstType::Store => {
-                if let Word::Int(addr) = inst.operand {
-                    if addr < 0 || addr as usize > (self.heap.len() - 1) {
-                        return Err(Error::SegmentationFault);
-                    }
-
-                    if self.sp < 1 {
-                        return Err(Error::StackUnderflow);
-                    }
-
-                    let value = self.pop()?;
-                    self.heap[addr as usize] = value;
-                } else {
-                    return Err(Error::IllegalInst);
-                }
-            }
-            InstType::Load => {
-                if let Word::Int(addr) = inst.operand {
-                    if addr < 0 || addr as usize > (self.heap.len() - 1) {
-                        return Err(Error::SegmentationFault);
-                    }
-
-                    let value = self.heap[addr as usize];
-                    self.push(value)?;
-                } else {
-                    return Err(Error::IllegalInst);
-                }
-            }
-            InstType::Stores => {
-                if let Word::Ptr(ptr) = inst.operand {
-                    let stack_ptr = ptr.as_usize();
-                    let heap_ptr = self.stores(Pointer::Stack(stack_ptr))?;
-                    self.push(Word::Ptr(heap_ptr))?;
-
-                    // TODO: Pop/Free old
+            InstType::Alloc => {
+                if let Word::Int(size) = inst.operand {
+                    let ptr = self.malloc(size as usize)?;
+                    self.push(Word::Ptr(ptr))?;
                 }
                 else {
-                    return Err(Error::InvalidPointer);
+                    return Err(Error::IllegalInst);
                 }
             }
-            InstType::Loads => {
-                // TODO: Store Segment
+            InstType::Free => {
+                if let Word::Ptr(ptr) = inst.operand {
+                    self.free(ptr)?;
+                }
+                else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Set => {
+                if let Word::Ptr(ptr) = inst.operand {
+                    let value = self.pop()?;
+                    let _ = self.setelem(ptr, value);
+                }
+                else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Mov => {
+                if let Word::Ptr(ptr) = inst.operand {
+                    let reg_index = ptr.as_usize();
+                    if reg_index >= self.registers.len() {
+                        return Err(Error::IllegalInst);
+                    }
+
+                    self.registers[reg_index] = self.pop()?;
+                }
+                else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Loadr => {
+                if let Word::Ptr(ptr) = inst.operand {
+                    let reg_index = ptr.as_usize();
+                    if reg_index >= self.registers.len() {
+                        return Err(Error::IllegalInst);
+                    }
+
+                    let addr = if let Word::Int(addr) = self.registers[reg_index] {
+                        addr as usize
+                    }
+                    else {
+                        return Err(Error::IllegalInst);
+                    };
+                    
+                    if addr >= self.heap.len() {
+                        return Err(Error::SegmentationFault);
+                    }
+                }
+                else {
+                    return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Storer => {
+                if let Word::Ptr(ptr) = inst.operand {
+                    let reg_index = ptr.as_usize();
+                    if reg_index >= self.registers.len() {
+                        return Err(Error::IllegalInst);
+                    }
+                    let addr = if let Word::Int(addr) = self.registers[reg_index] {
+                        addr as usize
+                    } else {
+                        return Err(Error::IllegalInst);
+                    };
+                    if addr >= self.heap.len() {
+                        return Err(Error::SegmentationFault);
+                    }
+                    self.heap[addr] = self.registers[reg_index];
+                } else {
+                    return Err(Error::IllegalInst);
+                }
             }
             InstType::Open => {
                 // TODO

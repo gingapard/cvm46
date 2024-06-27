@@ -27,6 +27,12 @@
 | Return | Jumps back to previous Stack Frame and ip |
 | Exit   | Exit and Stop Execution |
 | Cmp    | Compare values          |
+| Alloc  | Allocate Memory         |
+| Free   | Free Memory             |
+| Set    | Set Element             |
+| Mov    | Mov to register         |
+| Loadr  | Load Register           |
+| Storer | Store Register          |
 | Store  | Store on Heap           | 
 | Load   | Load from Heap           |
 | Open   | Open File               |

@@ -5,6 +5,7 @@ use exec::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Pointer {
+    Register(usize),
     Stack(usize),
     Heap(usize),
     Files(usize),
@@ -13,6 +14,7 @@ pub enum Pointer {
 impl Pointer {
     pub fn as_usize(&self) -> usize {
         let value = match self {
+            Pointer::Register(v) => v,
             Pointer::Stack(v) => v,
             Pointer::Heap(v) => v,
             Pointer::Files(v) => v,
@@ -33,6 +35,7 @@ pub enum Word {
 }
 
 pub struct Machine {
+    registers: [Word; 8],
     stack: Vec<Word>,
     sp: usize,
     sbp: usize,
@@ -51,6 +54,7 @@ pub struct Machine {
 impl Machine {
     fn new(program: Vec<Inst>) -> Self {
         Machine {
+            registers: [Word::Free; 8],
             stack: Vec::new(),
             sp: 0,
             sbp: 0,
@@ -70,10 +74,14 @@ impl Machine {
 
 fn main() -> Result<(), Error> {
     let program = vec![
+        Inst::new(InstType::Read, Word::Int(0)),
+        Inst::new(InstType::Write, Word::Ptr(Pointer::Stack(1))),
     ];
 
     let mut machine = Machine::new(program);
     machine.debug = true;
+    machine.exec()?;
+    machine.dump();
 
     Ok(())
 }

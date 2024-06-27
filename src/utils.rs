@@ -42,18 +42,20 @@ impl Machine {
         self.sp = self.sbp;
     }
 
-    /// Push arr to Stack in revere order and return ptr to it's length
+    // Push arr to stack, Pointing to the first element
     pub fn push_arr(&mut self, arr: &[Word]) -> Result<Pointer, Error> {
-        for &elem in arr.iter().rev() {
-            self.push(elem)?;
-        }
 
         self.push(Word::Int(arr.len() as i64))?;
+        let ptr = Pointer::Stack(self.sp);
+
+        for &elem in arr.iter() {
+            self.push(elem)?;
+        }
         
-        let ptr = Pointer::Stack(self.sp - 1);
         Ok(ptr)
     }
 
+    /// Free heap-allocated segment
     pub fn free(&mut self, ptr: Pointer) -> Result<(), Error> {
         let segment = match ptr {
             Pointer::Stack(_) => &mut self.stack,
@@ -68,25 +70,21 @@ impl Machine {
 
         if let Word::Int(len) = segment[ptr] {
             let len = len as usize;
-            let end = ptr - 1;
-            let start = if ptr >= len + 1 {
-                ptr - len - 1 
-            } 
-            else { 
-                return Err(Error::SegmentationFault)
-            };
+            let end = ptr + len;
+            let start = ptr + 1;
 
-
-            if end >= segment.len() || start >= segment.len() || start > end {
+            // Checking if the slice pointers are valid
+            if end > segment.len() || start > segment.len() || start >= end {
                 return Err(Error::SegmentationFault);
             }
 
-            for i in start..=end {
+            // Freeing the segment by setting all elements to Word::Free
+            for i in (start..end).rev() {
                 segment[i] = Word::Free;
             }
 
             segment[ptr] = Word::Free;
-        }
+        } 
         else {
             return Err(Error::TypeMismatch);
         }
@@ -94,23 +92,68 @@ impl Machine {
         Ok(())
     }
 
-    /// Stores Array/Segment on Heap Returning Pointer::Heap
-    /// TODO: Store based on Word::Free in heap
-    pub fn stores(&mut self, ptr: Pointer) -> Result<Pointer, Error> {
-        let arr = self.read_arr(ptr)?;
-        for &elem in arr.iter().rev() {
-            self.heap.push(elem);
+
+    // Allocates Word's on the Heap
+    pub fn malloc(&mut self, len: usize) -> Result<Pointer, Error> {
+        let mut start_index = None;
+        let mut segment_length = 0;
+
+        for (index, word) in self.heap.iter().enumerate() {
+            match word {
+                Word::Free => {
+                    if segment_length == 0 {
+                        start_index = Some(index);
+                    }
+                    segment_length += 1;
+
+                    // +1 to fit the length
+                    if segment_length >= len + 1 {
+                        break;
+                    }
+                }
+                _ => {
+                    start_index = None;
+                    segment_length = 0;
+                }
+            }
         }
 
-        self.heap.push(Word::Int(arr.len() as i64));
-        self.hp += arr.len() + 1;
+        // Returns Pointer to suitable segment
+        if let Some(start) = start_index {
+            self.heap[start] = Word::Int(len as i64);
+            return Ok(Pointer::Heap(start + 1)); 
+        }
 
-        let heap_ptr = Pointer::Heap(self.hp - 1);
-        self.push(Word::Ptr(heap_ptr))?;
-        Ok(heap_ptr)
+        // Expands heap if no suitable segments already
+        let start_index = self.heap.len();
+        self.heap.push(Word::Int(len as i64));
+        for _ in 0..len {
+            self.heap.push(Word::Int(0));
+            self.hp += 1;
+        }
+
+        Ok(Pointer::Heap(start_index + 1)) 
     }
 
-    // Reads from Pointer 
+    /// Sets Element 
+    pub fn setelem(&mut self, elem: Pointer, value: Word) -> Result<(), Error> {
+        let segment = match elem {
+            Pointer::Heap(_) => &mut self.heap,
+            Pointer::Stack(_) => &mut self.stack,
+            _ => return Err(Error::InvalidPointer),
+        };
+
+        let elem_ptr = elem.as_usize();
+        if segment[elem_ptr] == Word::Free {
+            return Err(Error::SegmentationFault);
+        }
+        
+        segment[elem_ptr] = value;
+
+        Ok(())
+    }
+
+    /// Reads String from Memory
     pub fn read_arr(&self, ptr: Pointer) -> Result<Vec<Word>, Error> {
         let segment = match ptr {
             Pointer::Heap(_) => &self.heap,
@@ -119,46 +162,29 @@ impl Machine {
         };
 
         let ptr = ptr.as_usize();
+        let len_ptr = ptr - 1;
 
         if ptr >= segment.len() {
             return Err(Error::SegmentationFault);
         }
         
-        if let Word::Int(len) = segment[ptr] {
+        if len_ptr >= segment.len() {
+            return Err(Error::SegmentationFault);
+        }
+        
+        if let Word::Int(len) = segment[len_ptr] {
             let len = len as usize;
 
-            let start = ptr.saturating_sub(1).saturating_sub(len);
-            let end = ptr.saturating_sub(1);
-
-            if end >= segment.len() || start >= segment.len() || start > end {
-                return Err(Error::SegmentationFault);
-            }
-
-            let arr_slice = &segment[start..=end];
-            let mut arr = arr_slice.to_vec();
-            arr.reverse();
+            let start = ptr;
+            let end = start + len;
+            let arr_slice = &segment[start..end];
+            let arr = arr_slice.to_vec();
             
             Ok(arr)
         } 
         else {
-            return Err(Error::TypeMismatch);
+            return Err(Error::InvalidPointer);
         }
-    }
-
-    /// Open File
-    pub fn open(&mut self, filename: &usize) -> Result<(), Error> {
-        if self.sp < 1 {
-            return Err(Error::StackUnderflow);
-        }
-
-        let mode = match self.pop()? {
-            Word::Int(mode) => mode,
-            _ => return Err(Error::IllegalOperandType),
-        };
-
-        // TODO:
-
-        Ok(())
     }
 
     /// Read from Stdin returns pointer
@@ -242,7 +268,8 @@ impl Machine {
 
 
     pub fn dump(&self) {
-        println!("Stack:");
+
+        println!("\nStack:");
         if self.sp < 1 {
             println!("  [empty]");
         } 
