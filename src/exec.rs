@@ -33,7 +33,7 @@ pub enum InstType {
     Free,   // Free Array on Heap
     Set,    // Sets Element. Needs pointer to Target Element
 
-    Mov,  
+    Mov,    // Copy Value from memory in to register
     Loadr,
     Storer,
  

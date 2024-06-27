@@ -32,6 +32,7 @@ pub enum Word {
     Ptr(Pointer),
     Char(char),
     Free,
+    Void,
 }
 
 pub struct Machine {
@@ -74,14 +75,15 @@ impl Machine {
 
 fn main() -> Result<(), Error> {
     let program = vec![
-        Inst::new(InstType::Read, Word::Int(0)),
-        Inst::new(InstType::Write, Word::Ptr(Pointer::Stack(1))),
+        Inst::new(InstType::Read, [Word::Int(0), Word::Void]),
+        Inst::new(InstType::Pushc, [Word::Char('m'), Word::Void]),
+        Inst::new(InstType::Set, [Word::Ptr(Pointer::Stack(3)), Word::Void]),
+        Inst::new(InstType::Write, [Word::Ptr(Pointer::Stack(1)), Word::Void]),
     ];
 
     let mut machine = Machine::new(program);
-    machine.debug = true;
+    machine.debug = false;
     machine.exec()?;
-    machine.dump();
 
     Ok(())
 }
