@@ -9,6 +9,7 @@ pub enum Pointer {
     Stack(usize),
     Heap(usize),
     Files(usize),
+    Data(usize),
 }
 
 impl Pointer {
@@ -18,6 +19,7 @@ impl Pointer {
             Pointer::Stack(v) => v,
             Pointer::Heap(v) => v,
             Pointer::Files(v) => v,
+            Pointer::Data(v) => v,
         };
 
         return *value;
@@ -32,7 +34,7 @@ pub enum Word {
     Ptr(Pointer),
     Char(char),
     Free,
-    Void,
+    None,
 }
 
 pub struct Machine {
@@ -43,6 +45,7 @@ pub struct Machine {
     heap: Vec<Word>,
     hp: usize,
     files: Vec<std::fs::File>,
+    data: Vec<Vec<Word>>,
 
     ip: usize,
     program: Vec<Inst>,
@@ -62,6 +65,7 @@ impl Machine {
             heap: Vec::new(),
             hp: 0,
             files: Vec::new(),
+            data: Vec::new(),
             
             ip: 0,
             program,
@@ -75,15 +79,21 @@ impl Machine {
 
 fn main() -> Result<(), Error> {
     let program = vec![
-        Inst::new(InstType::Read, [Word::Int(0), Word::Void]),
-        Inst::new(InstType::Pushc, [Word::Char('m'), Word::Void]),
-        Inst::new(InstType::Set, [Word::Ptr(Pointer::Stack(3)), Word::Void]),
-        Inst::new(InstType::Write, [Word::Ptr(Pointer::Stack(1)), Word::Void]),
+        Inst::new(InstType::Pushs, [Word::Ptr(Pointer::Data(0)), Word::None]),
     ];
 
     let mut machine = Machine::new(program);
-    machine.debug = false;
+    machine.data.push(vec![
+        Word::Char('h'),
+        Word::Char('e'),
+        Word::Char('l'),
+        Word::Char('l'),
+        Word::Char('o'),
+    ]);
+
+    machine.debug = true;
     machine.exec()?;
 
     Ok(())
 }
+

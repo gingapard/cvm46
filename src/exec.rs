@@ -8,6 +8,7 @@ pub enum InstType {
     Pushd,  // Push Double (64-bit)
     Pushc,  // Push Char 
     Pushr,  // Push Register 
+    Pushs,  // Push Segment 
     Pop,    // Pop Stack
     Dup,    // Duplicate
     Plus,   // Plus op
@@ -120,6 +121,13 @@ impl Machine {
                 }
                 else {
                     return Err(Error::IllegalInst);
+                }
+            }
+            InstType::Pushs => {
+                if let Word::Ptr(ptr) = inst.operand[0] {
+                    let data_ptr = ptr.as_usize();
+                    let segment_ptr = self.push_segment(&self.data[data_ptr].clone())?;
+                    let _ = self.push(Word::Ptr(segment_ptr));
                 }
             }
             InstType::Pop => {
@@ -369,7 +377,7 @@ impl Machine {
                 }
             }
 
-            // For Storing single Word Register on Heap change register to now contain pointer
+            // Storing single Word Register on Heap change register to now contain pointer
             InstType::Storer => {
                 if let Word::Ptr(reg_ptr) = inst.operand[0] {
                     let reg_index = reg_ptr.as_usize();

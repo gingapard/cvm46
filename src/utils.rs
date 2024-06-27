@@ -43,7 +43,7 @@ impl Machine {
     }
 
     // Push arr to stack, Pointing to the first element
-    pub fn push_arr(&mut self, arr: &[Word]) -> Result<Pointer, Error> {
+    pub fn push_segment(&mut self, arr: &[Word]) -> Result<Pointer, Error> {
 
         self.push(Word::Int(arr.len() as i64))?;
         let ptr = Pointer::Stack(self.sp);
@@ -202,7 +202,7 @@ impl Machine {
         }
 
         let str_arr: Vec<Word> = buffer.chars().map(Word::Char).collect();
-        let _ = self.push_arr(&str_arr);
+        let _ = self.push_segment(&str_arr);
 
         Ok(self.sp) 
     }
