@@ -144,7 +144,9 @@ impl Machine {
         };
 
         let elem_ptr = elem.as_usize();
-        if segment[elem_ptr] == Word::Free {
+
+        // Check that pointer is within bounds
+        if elem_ptr >= segment.len() || segment[elem_ptr] == Word::Free {
             return Err(Error::SegmentationFault);
         }
         

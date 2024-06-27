@@ -50,11 +50,11 @@ pub enum InstType {
 #[derive(Debug, Clone)]
 pub struct Inst {
     inst_type: InstType,
-    operand: Word,
+    operand: [Word; 2],
 }
 
 impl Inst {
-    pub fn new(inst_type: InstType, operand: Word) -> Self {
+    pub fn new(inst_type: InstType, operand: [Word; 2]) -> Self {
         Inst { inst_type, operand }
     }
 }
@@ -80,28 +80,28 @@ impl Machine {
     fn exec_inst(&mut self, inst: &Inst) -> Result<(), Error> {
         match inst.inst_type {
             InstType::Pushi => {
-                if let Word::Int(val) = inst.operand {
+                if let Word::Int(val) = inst.operand[0] {
                     self.push(Word::Int(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Pushf => {
-                if let Word::Float(val) = inst.operand {
+                if let Word::Float(val) = inst.operand[0] {
                     self.push(Word::Float(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Pushd => {
-                if let Word::Double(val) = inst.operand {
+                if let Word::Double(val) = inst.operand[0] {
                     self.push(Word::Double(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Pushc => {
-                if let Word::Char(val) = inst.operand {
+                if let Word::Char(val) = inst.operand[0]{
                     self.push(Word::Char(val))?;
                 } else {
                     return Err(Error::IllegalInst);
@@ -209,7 +209,7 @@ impl Machine {
                 }
             }
             InstType::Jmp => {
-                if let Word::Int(addr) = inst.operand {
+                if let Word::Int(addr) = inst.operand[0] {
                     if addr < 0 || addr as usize >= self.program.len() {
                         return Err(Error::IllegalJmp);
                     }
@@ -220,7 +220,7 @@ impl Machine {
                 }
             }
             InstType::Jeq | InstType::Jne => {
-                if let Word::Int(addr) = inst.operand {
+                if let Word::Int(addr) = inst.operand[0] {
                     if addr < 0 || addr as usize >= self.program.len() {
                         return Err(Error::IllegalJmp);
 
@@ -252,7 +252,7 @@ impl Machine {
                 self.halt = true;
             }
             InstType::Call => { 
-                if let Word::Int(addr) = inst.operand {
+                if let Word::Int(addr) = inst.operand[0] {
                     self.push(Word::Int(self.sbp as i64))?;
                     self.sbp = self.sp;
 
@@ -274,7 +274,7 @@ impl Machine {
 
             }
             InstType::Exit => {
-                self.exit(inst.operand);
+                self.exit(inst.operand[0]);
             }
             InstType::Cmp => {
                 if self.sp < 2 {
@@ -288,7 +288,7 @@ impl Machine {
                 })?;
             }
             InstType::Alloc => {
-                if let Word::Int(size) = inst.operand {
+                if let Word::Int(size) = inst.operand[0] {
                     let ptr = self.malloc(size as usize)?;
                     self.push(Word::Ptr(ptr))?;
                 }
@@ -297,7 +297,7 @@ impl Machine {
                 }
             }
             InstType::Free => {
-                if let Word::Ptr(ptr) = inst.operand {
+                if let Word::Ptr(ptr) = inst.operand[0] {
                     self.free(ptr)?;
                 }
                 else {
@@ -305,7 +305,7 @@ impl Machine {
                 }
             }
             InstType::Set => {
-                if let Word::Ptr(ptr) = inst.operand {
+                if let Word::Ptr(ptr) = inst.operand[0] {
                     let value = self.pop()?;
                     let _ = self.setelem(ptr, value);
                 }
@@ -314,55 +314,42 @@ impl Machine {
                 }
             }
             InstType::Mov => {
-                if let Word::Ptr(ptr) = inst.operand {
+                if let Word::Ptr(ptr) = inst.operand[0] {
                     let reg_index = ptr.as_usize();
                     if reg_index >= self.registers.len() {
                         return Err(Error::IllegalInst);
                     }
-
-                    self.registers[reg_index] = self.pop()?;
+                    
+                    self.registers[reg_index] = inst.operand[1];
                 }
                 else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Loadr => {
-                if let Word::Ptr(ptr) = inst.operand {
+                if let Word::Ptr(ptr) = inst.operand[0] {
                     let reg_index = ptr.as_usize();
                     if reg_index >= self.registers.len() {
                         return Err(Error::IllegalInst);
                     }
+                    // TODO: Load Register onto stack
 
-                    let addr = if let Word::Int(addr) = self.registers[reg_index] {
-                        addr as usize
-                    }
-                    else {
-                        return Err(Error::IllegalInst);
-                    };
-                    
-                    if addr >= self.heap.len() {
-                        return Err(Error::SegmentationFault);
-                    }
                 }
                 else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Storer => {
-                if let Word::Ptr(ptr) = inst.operand {
-                    let reg_index = ptr.as_usize();
+                if let Word::Ptr(reg_ptr) = inst.operand[0] {
+                    let reg_index = reg_ptr.as_usize();
+
                     if reg_index >= self.registers.len() {
                         return Err(Error::IllegalInst);
                     }
-                    let addr = if let Word::Int(addr) = self.registers[reg_index] {
-                        addr as usize
-                    } else {
-                        return Err(Error::IllegalInst);
-                    };
-                    if addr >= self.heap.len() {
-                        return Err(Error::SegmentationFault);
-                    }
-                    self.heap[addr] = self.registers[reg_index];
+                    
+                    let heap_ptr = self.malloc(1)?;
+                    self.setelem(heap_ptr, self.registers[reg_index])?;
+
                 } else {
                     return Err(Error::IllegalInst);
                 }
@@ -383,7 +370,7 @@ impl Machine {
                 self.read()?;
             }
             InstType::Write => {
-                if let Word::Ptr(ptr) = inst.operand {
+                if let Word::Ptr(ptr) = inst.operand[0] {
                     self.write(ptr)?;
                 }
             }
