@@ -1,6 +1,7 @@
 use super::*;
 use std::io::Write;
 use std::io::stdin;
+use std::fs::OpenOptions;
 
 impl Machine {
 
@@ -187,6 +188,50 @@ impl Machine {
         else {
             return Err(Error::InvalidPointer);
         }
+    }
+
+    // Open file and return Pointer::Files 
+    pub fn open(&mut self, data_ptr: Pointer, mode: i64) -> Result<Pointer, Error> {
+        let arr = self.read_arr(data_ptr)?;
+        
+        let filename: String = arr.iter()
+            .map(|word| Ok(match word {
+                Word::Char(c) => *c,
+                _ => return Err(Error::TypeMismatch),
+            }))
+            .collect::<Result<String, Error>>()?;
+
+        let file_ptr = match mode {
+            0 => OpenOptions::new().read(true).open(filename),
+            1 => OpenOptions::new().write(true).create(true).truncate(true).open(filename),
+            2 => OpenOptions::new().write(true).create(true).append(true).open(filename),
+            _ => return Err(Error::IllegalInst)
+        };
+
+        match file_ptr {
+            Ok(f) => {
+                let file_id = self.file_id_counter;
+                self.files.insert(file_id, f);
+                self.file_id_counter += 1;
+                Ok(Pointer::Files(file_id))
+            }
+            Err(_) => Err(Error::FileNotFound),
+        }
+    }
+
+    /// Close Open Files
+    pub fn close(&mut self, ptr: Pointer) -> Result<(), Error> {
+        if let Pointer::Files(file_ptr) = ptr {
+            if let Some(file) = self.files.remove(&file_ptr) {
+                return Ok(()); 
+            }
+            
+        }
+        else {
+            return Err(Error::FileNotFound);
+        }
+        
+        Ok(())
     }
 
     /// Read from Stdin returns pointer

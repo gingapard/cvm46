@@ -12,4 +12,5 @@ pub enum Error {
     TypeMismatch,
     IO,
     InvalidPointer,
+    FileNotFound,
 }

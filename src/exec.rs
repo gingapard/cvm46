@@ -353,7 +353,7 @@ impl Machine {
                 }
             }
 
-            // Load Single Word from Heap into register
+            // Load heap ptr into register
             InstType::Loadr => {
                 if let Word::Ptr(ptr) = inst.operand[0] {
                     let reg_index = ptr.as_usize();
@@ -377,7 +377,7 @@ impl Machine {
                 }
             }
 
-            // Storing single Word Register on Heap change register to now contain pointer
+            // Store Register on Heap
             InstType::Storer => {
                 if let Word::Ptr(reg_ptr) = inst.operand[0] {
                     let reg_index = reg_ptr.as_usize();
@@ -388,16 +388,33 @@ impl Machine {
                     
                     let heap_ptr = self.malloc(1)?;
                     self.setelem(heap_ptr, self.registers[reg_index])?;
-                    self.registers[reg_index] = Word::Ptr(heap_ptr);
+
+                    // Pointer to allocated segment will be stored on register
+                    self.registers[reg_index] = Word::Ptr(heap_ptr); 
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Open => {
-                // TODO
+                let file_ptr = match inst.operand[0] {
+                    Word::Ptr(ptr) => ptr,
+                    _ => return Err(Error::IllegalInst),
+                };
+
+                let mode = match self.pop()? {
+                    Word::Int(mode) => mode,
+                    _ => return Err(Error::IllegalInst)
+                };
+
+                self.open(file_ptr, mode)?; 
             }
             InstType::Close => {
-                // TODO
+                if let Word::Ptr(ptr) = inst.operand[0] {
+                    self.close(ptr)?;
+                }
+                else {
+                    return Err(Error::IllegalInst);
+                }
             }
             InstType::Readf => {
                 // TODO

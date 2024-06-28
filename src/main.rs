@@ -1,7 +1,11 @@
 pub mod error;
 pub mod exec;
-pub mod utils; use error::Error;
+pub mod utils; 
+use error::Error;
 use exec::*;
+
+use std::collections::HashMap;
+use std::fs::File;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Pointer {
@@ -39,19 +43,22 @@ pub enum Word {
 
 pub struct Machine {
     registers: [Word; 8],
+    data: Vec<Vec<Word>>,
+
     stack: Vec<Word>,
     sp: usize,
     sbp: usize,
+
     heap: Vec<Word>,
     hp: usize,
-    files: Vec<std::fs::File>,
-    data: Vec<Vec<Word>>,
+
+    files: HashMap<usize, File>,
+    file_id_counter: usize,
 
     ip: usize,
     program: Vec<Inst>,
     exit: bool,
     halt: bool,
-
     debug: bool,
 }
 
@@ -59,17 +66,20 @@ impl Machine {
     fn new(program: Vec<Inst>) -> Self {
         Machine {
             registers: [Word::Free; 8],
+            data: Vec::new(),
+
             stack: Vec::new(),
             sp: 0,
             sbp: 0,
+
             heap: Vec::new(),
             hp: 0,
+
             files: Vec::new(),
-            data: Vec::new(),
+            file_id_counter: 0,
             
             ip: 0,
             program,
-
             exit: false,
             halt: false,
             debug: false,
