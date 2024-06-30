@@ -345,8 +345,15 @@ impl Machine {
             }
             InstType::Set => {
                 if let Word::Ptr(ptr) = inst.operand[0] {
-                    let value = self.pop()?;
-                    let _ = self.setelem(ptr, value);
+                    let reg_index = ptr.as_usize();
+                    if reg_index >= self.registers.len() {
+                        return Err(Error::IllegalInst);
+                    }
+
+                    if let Word::Ptr(reg_ptr) = self.registers[reg_index] {
+                        let value = self.pop()?;
+                        let _ = self.setelem(reg_ptr, value);
+                    }
                 }
                 else {
                     return Err(Error::IllegalInst);

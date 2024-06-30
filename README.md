@@ -32,7 +32,7 @@
 | Cmp    | Compare Top of Stack    | Stack |
 | Alloc  | Allocate Memory         | Immediate |
 | Free   | Free Memory             | Immediate |
-| Set    | Set Element             | Stack & Immediate |
+| Set    | Set Element             | Stack & Register |
 | Mov    | Mov to register         | Stack & Register  |
 | Loadr  | Load Register from Heap | Immediate & Register |
 | Storer | Store Register in Heap  | Register & Immediate |
