@@ -1,8 +1,12 @@
 pub mod error;
 pub mod exec;
 pub mod utils; 
+pub mod memory;
+pub mod stack;
+
 use error::Error;
 use exec::*;
+use stack::Stack;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -45,9 +49,7 @@ pub struct Machine {
     registers: [Word; 8],
     data: Vec<Vec<Word>>,
 
-    stack: Vec<Word>,
-    sp: usize,
-    sbp: usize,
+    stack: Stack,
 
     heap: Vec<Word>,
     hp: usize,
@@ -68,14 +70,12 @@ impl Machine {
             registers: [Word::Free; 8],
             data: Vec::new(),
 
-            stack: Vec::new(),
-            sp: 0,
-            sbp: 0,
+            stack: Stack::new(),
 
             heap: Vec::new(),
             hp: 0,
 
-            files: Vec::new(),
+            files: HashMap::new(),
             file_id_counter: 0,
             
             ip: 0,

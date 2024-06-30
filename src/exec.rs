@@ -1,8 +1,9 @@
 use super::*;
 use crate::error::Error;
+use memory::*;
 
 #[derive(Debug, Clone)] 
-pub enum InstType {
+pub enum InstType { 
     Pushi,  // Push Integer
     Pushf,  // Push Float (32-bit)
     Pushd,  // Push Double (64-bit)
@@ -84,28 +85,28 @@ impl Machine {
         match inst.inst_type {
             InstType::Pushi => {
                 if let Word::Int(val) = inst.operand[0] {
-                    self.push(Word::Int(val))?;
+                    self.stack.push(Word::Int(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Pushf => {
                 if let Word::Float(val) = inst.operand[0] {
-                    self.push(Word::Float(val))?;
+                    self.stack.push(Word::Float(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Pushd => {
                 if let Word::Double(val) = inst.operand[0] {
-                    self.push(Word::Double(val))?;
+                    self.stack.push(Word::Double(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
             }
             InstType::Pushc => {
                 if let Word::Char(val) = inst.operand[0]{
-                    self.push(Word::Char(val))?;
+                    self.stack.push(Word::Char(val))?;
                 } else {
                     return Err(Error::IllegalInst);
                 }
@@ -118,7 +119,7 @@ impl Machine {
                     }
 
                     let value = self.registers[reg_index];
-                    self.push(value)?;
+                    self.stack.push(value)?;
                 }
                 else {
                     return Err(Error::IllegalInst);
@@ -127,12 +128,12 @@ impl Machine {
             InstType::Pushs => {
                 if let Word::Ptr(ptr) = inst.operand[0] {
                     let data_ptr = ptr.as_usize();
-                    let segment_ptr = self.push_segment(&self.data[data_ptr].clone())?;
-                    let _ = self.push(Word::Ptr(segment_ptr));
+                    let segment_ptr = self.stack.push_segment(&self.data[data_ptr].clone())?;
+                    let _ = self.stack.push(Word::Ptr(segment_ptr));
                 }
             }
             InstType::Pop => {
-                self.pop()?;
+                self.stack.pop()?;
             }
             InstType::Popr => {
                 if let Word::Ptr(ptr) = inst.operand[0] {
@@ -141,17 +142,17 @@ impl Machine {
                         return Err(Error::InvalidPointer)?;
                     }
 
-                    self.registers[reg_index] = self.pop()?;
+                    self.registers[reg_index] = self.stack.pop()?;
                 }
                 else {
                     return Err(Error::InvalidPointer)?;
                 }
             }
             InstType::Dup => {
-                self.dup()?;
+                self.stack.dup()?;
             }
             InstType::Plus => {
-                if self.sp < 2 {
+                if self.stack.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
 
@@ -163,7 +164,7 @@ impl Machine {
                 })?;
             }
             InstType::Sub => {
-                if self.sp < 2 {
+                if self.stack.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
 
@@ -175,7 +176,7 @@ impl Machine {
                 })?;
             }
             InstType::Mul => {
-                if self.sp < 2 {
+                if self.stack.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
 
@@ -187,7 +188,7 @@ impl Machine {
                 })?;
             }
             InstType::Div => {
-                if self.sp < 2 {
+                if self.stack.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
 
@@ -235,13 +236,13 @@ impl Machine {
                 })?;
             }
             InstType::Not => {
-                if self.sp < 1 {
+                if self.stack.sp < 1 {
                     return Err(Error::StackUnderflow);
                 }
 
-                let value = self.pop()?;
+                let value = self.stack.pop()?;
                 match value {
-                    Word::Int(a) => self.push(Word::Int(!a))?,
+                    Word::Int(a) => self.stack.push(Word::Int(!a))?,
                     _ => return Err(Error::IllegalInst),
                 }
             }
@@ -263,11 +264,11 @@ impl Machine {
 
                     }
 
-                    if self.sp < 1 {
+                    if self.stack.sp < 1 {
                         return Err(Error::StackUnderflow);
                     }
                     
-                    let value = self.pop()?;
+                    let value = self.stack.pop()?;
                     match inst.inst_type {
                         InstType::Jeq => {
                             if value == Word::Int(1 /* true */ ) {
@@ -290,21 +291,21 @@ impl Machine {
             }
             InstType::Call => { 
                 if let Word::Int(addr) = inst.operand[0] {
-                    self.push(Word::Int(self.sbp as i64))?;
-                    self.sbp = self.sp;
+                    self.stack.push(Word::Int(self.stack.sbp as i64))?;
+                    self.stack.sbp = self.stack.sp;
 
-                    self.push(Word::Int(self.ip as i64))?;
+                    self.stack.push(Word::Int(self.ip as i64))?;
                     self.ip = addr as usize;
                 }
 
             }
             InstType::Return => {
-                self.ip = match self.pop()? {
+                self.ip = match self.stack.pop()? {
                     Word::Int(addr) => addr as usize,
                     _ => return Err(Error::IllegalInst),
                 };
 
-                self.sbp = match self.pop()? {
+                self.stack.sbp = match self.stack.pop()? {
                     Word::Int(sbp) => sbp as usize,
                     _ => return Err(Error::IllegalInst),
                 };
@@ -314,7 +315,7 @@ impl Machine {
                 self.exit(inst.operand[0]);
             }
             InstType::Cmp => {
-                if self.sp < 2 {
+                if self.stack.sp < 2 {
                     return Err(Error::StackUnderflow);
                 }
                 self.binary_op(|a, b| match (a, b) {
@@ -329,7 +330,7 @@ impl Machine {
             InstType::Alloc => {
                 if let Word::Int(size) = inst.operand[0] {
                     let ptr = self.malloc(size as usize)?;
-                    self.push(Word::Ptr(ptr))?;
+                    self.stack.push(Word::Ptr(ptr))?;
                 }
                 else {
                     return Err(Error::IllegalInst);
@@ -351,7 +352,7 @@ impl Machine {
                     }
 
                     if let Word::Ptr(reg_ptr) = self.registers[reg_index] {
-                        let value = self.pop()?;
+                        let value = self.stack.pop()?;
                         let _ = self.setelem(reg_ptr, value);
                     }
                 }
@@ -422,7 +423,7 @@ impl Machine {
                     _ => return Err(Error::IllegalInst),
                 };
 
-                let mode = match self.pop()? {
+                let mode = match self.stack.pop()? {
                     Word::Int(mode) => mode,
                     _ => return Err(Error::IllegalInst)
                 };
