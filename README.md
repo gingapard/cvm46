@@ -12,6 +12,7 @@
 | Pushc  | Push Char on Stack      |
 | Pushr  | Push Register on Stack  |
 | Pop    | Pop value off Stack     |
+| Popr   | Pop value off stack to register |
 | Dup    | Duplicate top of Stack  |
 | Plus   | Plus top of Stack       |
 | Sub    | Sub top of Stack        |

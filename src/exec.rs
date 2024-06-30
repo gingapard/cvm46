@@ -10,6 +10,7 @@ pub enum InstType {
     Pushr,  // Push Register 
     Pushs,  // Push Segment 
     Pop,    // Pop Stack
+    Popr,   // Pop Stack and put value on register
     Dup,    // Duplicate
     Plus,   // Plus op
     Sub,    // Sub op
@@ -132,6 +133,19 @@ impl Machine {
             }
             InstType::Pop => {
                 self.pop()?;
+            }
+            InstType::Popr => {
+                if let Word::Ptr(ptr) = inst.operand[0] {
+                    let reg_index = ptr.as_usize();
+                    if reg_index >= self.registers.len() {
+                        return Err(Error::InvalidPointer)?;
+                    }
+
+                    self.registers[reg_index] = self.pop()?;
+                }
+                else {
+                    return Err(Error::InvalidPointer)?;
+                }
             }
             InstType::Dup => {
                 self.dup()?;
